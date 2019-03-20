@@ -1,8 +1,8 @@
 //
 //  main.cpp
-//  VFD
+//  VDF
 //
-//  Created by Adrian Hamelink on 18.03.19.
+//  Created by Adrian Hamelink on 20.03.19.
 //  Copyright © 2019 LACAL. All rights reserved.
 //
 
@@ -10,6 +10,6 @@
 
 int main(int argc, const char * argv[]) {
     // insert code here...
-    std::cout << "Hello, Alessio!\n";
+    std::cout << "Hello, World!\n";
     return 0;
 }
