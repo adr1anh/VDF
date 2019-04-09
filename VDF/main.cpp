@@ -66,6 +66,6 @@ int main(int argc, const char * argv[]) {
     a= 2;
     b=3;
     hash(a, b);
-    std::cout << "Hello, World!\n";
+    std::cout << "Hello, Alessio!\n";
     return 0;
 }
