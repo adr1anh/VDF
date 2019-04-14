@@ -12,6 +12,7 @@
 #include <gmp.h>
 #include <openssl/rsa.h>
 #include <openssl/sha.h>
+#include <vector>
 
 void generate_rsa_prime(mpz_class &p,
                         mpz_class &q,
@@ -59,11 +60,57 @@ bool verify(mpz_class const& pk,
             mpz_class const& proof,
             unsigned short iterations);
 
+mpz_class* proof(mpz_class const& id, mpz_class const& l, mpz_class const& t, mpz_class const& kappa, mpz_class const& gamma, vector<mpz_class> const& base)
+{
+    mpz_class kappa1 = floor(*kappa/2);
+    mpz_class kappa0 = *kappa - kappa1;
+    x = unique_ptr<mpz_class>(new mpz_class(*id));
+    
+    for (mpz_class j = gamma - 1, j >= 0, j=j-1)
+    {
+        *x = x^(2^*kappa);
+        y = new array<mpz_class, 2^(*kappa)>;
+        
+        for(mpz_class b = 0, b < 2^(*kappa), b++)
+        {
+            *y[b] = id;
+        }
+        
+        for (mpz_class i = 0, i < ceil(*t/(*kappa * *gamma))), i++)
+        {
+            b = floor((2^*kappa * (2^(*t - *kappa * (i * *gamma + j)) % *l)/ *l);
+            *y[b] = *y[b] * *base[i];
+        }
+                      
+        for(mpz_class b1 = 0, b1 < 2^kappa1, b1++)
+        {
+            z = id;
+            for(mpz_class b0 = 0, b0 < 2^(*kappa), b0++)
+            {
+                z = z * *y[b1 * 2^kappa0 + b0];
+            }
+            x = x * z^(b1 * 2^kappa0);
+        }
+                      
+        for(mpz_class b0 = 0, b0 < 2^kappa0, b0++)
+        {
+            z = id;
+            for(mpz_class b1 = 0, b1 < 2^kappa1, b1++)
+            {
+                z = z * *y[b1 * 2^kappa0 + b0];
+            }
+            x = x * z^b0;
+        }
+    }
+    delete y;
+    return x;
+}
+
 static unsigned short int k = 128;
 
 int main(int argc, const char * argv[]) {
     mpz_class a,b;
-    a= 2;
+    a= 5;
     b=3;
     hash(a, b);
     std::cout << "Hello, Alessio!\n";

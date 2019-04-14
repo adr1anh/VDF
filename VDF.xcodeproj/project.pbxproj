@@ -265,7 +265,7 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = F46D677HSK;
+				DEVELOPMENT_TEAM = Z467GW38K4;
 				FRAMEWORK_SEARCH_PATHS = "";
 				HEADER_SEARCH_PATHS = (
 					/usr/local/include,
@@ -285,7 +285,7 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = F46D677HSK;
+				DEVELOPMENT_TEAM = Z467GW38K4;
 				FRAMEWORK_SEARCH_PATHS = "";
 				HEADER_SEARCH_PATHS = (
 					/usr/local/include,
