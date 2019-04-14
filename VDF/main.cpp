@@ -20,7 +20,7 @@ void generate_rsa_prime(mpz_class &p,
 
 void hash_prime();
 
-
+//gf
 //https://stackoverflow.com/a/2262447
 bool simpleSHA256(void* input, unsigned long length, unsigned char* md)
 {
