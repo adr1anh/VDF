@@ -37,82 +37,97 @@ bool simpleSHA256(void* input, unsigned long length, unsigned char* md)
     return true;
 }
 
-void hash(mpz_class const& pk,
-          mpz_class const& x)
+bool hash(mpz_t & output,
+          mpz_t const& pk,
+          mpz_t const& x)
 {
-    char padding_string[] = "residue";
-    char* x_string = mpz_get_str(NULL, 10, x.get_mpz_t());
-    size_t buffer_len = strlen(padding_string) + strlen(x_string);
-    char buffer[buffer_len];
-    strcpy(buffer, padding_string);
-    strcat(buffer, x_string);
-    unsigned char md[SHA256_DIGEST_LENGTH]; // 32 bytes
-    if(!simpleSHA256(buffer, buffer_len, md))
-    {
-        printf("error");
-    }
-    printf("%s", md);
-}
-          
-
-bool verify(mpz_class const& pk,
-            mpz_class const& x,
-            mpz_class const& proof,
-            unsigned short iterations);
-
-mpz_class* proof(mpz_class const& id, mpz_class const& l, mpz_class const& t, mpz_class const& kappa, mpz_class const& gamma, vector<mpz_class> const& base)
-{
-    mpz_class kappa1 = floor(*kappa/2);
-    mpz_class kappa0 = *kappa - kappa1;
-    x = unique_ptr<mpz_class>(new mpz_class(*id));
+    char residue_string[] = "residue";
+    int base = 10;
+    size_t residue_len = strlen(residue_string);
+    size_t x_len = mpz_sizeinbase(x, base);
+    char concatenated_string[residue_len + x_len];
     
-    for (mpz_class j = gamma - 1, j >= 0, j=j-1)
+    unsigned char md[SHA256_DIGEST_LENGTH]; // 32 bytes
+    if(!simpleSHA256(concatenated_string, sizeof(concatenated_string) * sizeof(char), md))
     {
-        *x = x^(2^*kappa);
-        y = new array<mpz_class, 2^(*kappa)>;
+        printf("error in sha");
+        return false;
+    } else {
+        mpz_import(output, SHA256_DIGEST_LENGTH, 1, sizeof(unsigned char), 0, 0, md);
         
-        for(mpz_class b = 0, b < 2^(*kappa), b++)
-        {
-            *y[b] = id;
-        }
-        
-        for (mpz_class i = 0, i < ceil(*t/(*kappa * *gamma))), i++)
-        {
-            b = floor((2^*kappa * (2^(*t - *kappa * (i * *gamma + j)) % *l)/ *l);
-            *y[b] = *y[b] * *base[i];
-        }
-                      
-        for(mpz_class b1 = 0, b1 < 2^kappa1, b1++)
-        {
-            z = id;
-            for(mpz_class b0 = 0, b0 < 2^(*kappa), b0++)
-            {
-                z = z * *y[b1 * 2^kappa0 + b0];
-            }
-            x = x * z^(b1 * 2^kappa0);
-        }
-                      
-        for(mpz_class b0 = 0, b0 < 2^kappa0, b0++)
-        {
-            z = id;
-            for(mpz_class b1 = 0, b1 < 2^kappa1, b1++)
-            {
-                z = z * *y[b1 * 2^kappa0 + b0];
-            }
-            x = x * z^b0;
-        }
+        return true;
     }
-    delete y;
-    return x;
 }
 
-static unsigned short int k = 128;
+int hash_prime(mpz_t & output,
+               mpz_t const& x,
+               mpz_t const& y,
+               int reps)
+{
+    char prime_string[] = "prime";
+    int base = 10;
+    size_t prime_len = strlen(prime_string);
+    size_t x_len = mpz_sizeinbase(x, base);
+    size_t y_len = mpz_sizeinbase(y, base);
+    
+    char concatenated_string[prime_len + x_len + y_len + 32];
+    // Concat the string
+    strcpy(concatenated_string, prime_string);
+    mpz_get_str(&concatenated_string[prime_len], base, x);
+    mpz_get_str(&concatenated_string[prime_len + x_len], base, y);
+    std::cout << concatenated_string << std::endl;
+    
+    for (int i = 0; i < INT32_MAX; ++i) {
+        int count, d, c;
+        count = 0;
+        
+        // Append binary string of i until we find a prime
+        for (c = 31 ; c >= 0 ; c--)
+        {
+            d = i >> c;
+            if (d & 1)
+                concatenated_string[prime_len + x_len + y_len + count] = 1 + '0';
+            else
+                concatenated_string[prime_len + x_len + y_len + count] = 0 + '0';
+            count++;
+        }
+        
+        unsigned char md[SHA256_DIGEST_LENGTH]; // 32 bytes
+        if(!simpleSHA256(concatenated_string, sizeof(concatenated_string) * sizeof(char), md))
+        {
+            // error
+        }
+        mpz_import(output, SHA256_DIGEST_LENGTH, 1, sizeof(unsigned char), 0, 0, md);
+        int ret = mpz_probab_prime_p(output, reps);
+        if (ret) {
+            std::cout << i << std::endl << mpz_get_str(NULL, 10, output);
+            return ret;
+        }
+    }
+    
+    return 0;
+}
+
+bool verify(mpz_t const& pk,
+            mpz_t const& x,
+            mpz_t const& proof,
+            unsigned short iterations)
+{
+    mpz_t g;
+    if (!hash(g, pk, x)) {
+        
+    }
+    return true;
+}
+
+//static unsigned short int k = 128;
 
 int main(int argc, const char * argv[]) {
-    mpz_class a,b;
-    a= 5;
-    b=3;
-    hash(a, b);
-    std::cout << "Hello, Alessio!\n";
+    mpz_t x, y;
+    mpz_init(x); mpz_init(y);
+    mpz_set_ui(x, 1955);
+    mpz_set_ui(y, 1000000009);
+    hash_prime(x, x, y, 50);
+    std::cout << sizeof(char);
     return 0;
 }
