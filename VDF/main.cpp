@@ -8,21 +8,23 @@
 
 #include <iostream>
 #include <stdio.h>
-#include <gmpxx.h>
 #include <gmp.h>
 #include <openssl/rsa.h>
 #include <openssl/sha.h>
 #include <vector>
+#include <math.h>
+#include <string>
 
-void generate_rsa_prime(mpz_class &p,
-                        mpz_class &q,
-                        unsigned short int modulus);
+//void generate_rsa_prime(mpz_class &p,
+//                        mpz_class &q,
+//                        unsigned short int modulus);
 
 void hash_prime();
 
-//gf
 //https://stackoverflow.com/a/2262447
-bool simpleSHA256(void* input, unsigned long length, unsigned char* md)
+bool simpleSHA256(void* input,
+                  unsigned long length,
+                  unsigned char* md)
 {
     SHA256_CTX context;
     if(!SHA256_Init(&context))
@@ -37,9 +39,9 @@ bool simpleSHA256(void* input, unsigned long length, unsigned char* md)
     return true;
 }
 
-bool hash(mpz_t & output,
-          mpz_t const& pk,
-          mpz_t const& x)
+bool hash(mpz_t output,
+          const mpz_t pk,
+          const mpz_t x)
 {
     char residue_string[] = "residue";
     int base = 10;
@@ -48,20 +50,21 @@ bool hash(mpz_t & output,
     char concatenated_string[residue_len + x_len];
     
     unsigned char md[SHA256_DIGEST_LENGTH]; // 32 bytes
-    if(!simpleSHA256(concatenated_string, sizeof(concatenated_string) * sizeof(char), md))
+    if(!simpleSHA256(concatenated_string,
+                     sizeof(concatenated_string) * sizeof(char), md))
     {
         printf("error in sha");
         return false;
     } else {
         mpz_import(output, SHA256_DIGEST_LENGTH, 1, sizeof(unsigned char), 0, 0, md);
-        
+        mpz_mod(output, output, pk);
         return true;
     }
 }
 
-int hash_prime(mpz_t & output,
-               mpz_t const& x,
-               mpz_t const& y,
+int hash_prime(mpz_t output,
+               const mpz_t x,
+               const mpz_t y,
                int reps)
 {
     char prime_string[] = "prime";
@@ -75,7 +78,6 @@ int hash_prime(mpz_t & output,
     strcpy(concatenated_string, prime_string);
     mpz_get_str(&concatenated_string[prime_len], base, x);
     mpz_get_str(&concatenated_string[prime_len + x_len], base, y);
-    std::cout << concatenated_string << std::endl;
     
     for (int i = 0; i < INT32_MAX; ++i) {
         int count, d, c;
@@ -98,9 +100,10 @@ int hash_prime(mpz_t & output,
             // error
         }
         mpz_import(output, SHA256_DIGEST_LENGTH, 1, sizeof(unsigned char), 0, 0, md);
+        
+        
         int ret = mpz_probab_prime_p(output, reps);
         if (ret) {
-            std::cout << i << std::endl << mpz_get_str(NULL, 10, output);
             return ret;
         }
     }
@@ -108,10 +111,22 @@ int hash_prime(mpz_t & output,
     return 0;
 }
 
-bool verify(mpz_t const& pk,
-            mpz_t const& x,
-            mpz_t const& proof,
-            unsigned short iterations)
+// Function to calculate 2^t using bit setting, should be faster than usual
+void mpz_pow_2(mpz_t rop, unsigned long int exp) {
+    mpz_set_ui(rop, 0);
+    mpz_setbit(rop, exp);
+    
+}
+
+// Prints a mpz_t
+void printz(mpz_t const out, std::string s) {
+    std::cout << s << ": " << mpz_get_str (NULL, 10, out) << std::endl;
+}
+
+bool verify(const mpz_t pk,
+            const mpz_t x,
+            mpz_t const proof,
+            unsigned short t)
 {
     mpz_t g;
     if (!hash(g, pk, x)) {
@@ -120,14 +135,218 @@ bool verify(mpz_t const& pk,
     return true;
 }
 
+// returns
+unsigned long int get_block(unsigned long i,
+                            unsigned long t,
+                            unsigned long k,
+                            mpz_t const l)
+{
+    mpz_t block, exp, two;
+    mpz_init(block);
+    mpz_init_set_ui(two, 2);
+    mpz_init_set_ui(exp, t - k * (i + 1));
+
+    // b = b (mod l)
+    mpz_powm(block, two, exp, l);
+    
+    // b = 2^k * b
+    mpz_mul_2exp(block, block, (mp_bitcnt_t)k);
+    
+    // b = floor(b/l)
+    mpz_fdiv_q(block, block, l);
+    
+    // b should be the right size again ( < 2^k )
+    unsigned long int res = mpz_get_ui(block);
+    
+    mpz_clear(block);
+    mpz_clear(two);
+    mpz_clear(exp);
+    return res;
+    
+}
+
+//verify that sum_i(get_block(i)*2^(ki)) = floor(2^t/l)
+void test_get_block(unsigned long t,
+                    unsigned long k,
+                    mpz_t const l)
+{
+    mpz_t exp, test, pow_two;
+    mpz_inits(exp, pow_two, test, NULL);
+    
+    // exp = floor(2^t/l)
+    mpz_pow_2(exp, t);
+    mpz_fdiv_q(exp, exp, l);
+
+    unsigned long i = 0;
+    while (t > k * (i + 1)) {
+        mpz_pow_2(pow_two, k * i);
+        mpz_mul_ui(pow_two, pow_two, get_block(i, t, k, l));
+        mpz_add(test, test, pow_two);
+        ++i;
+    }
+    
+    int res = mpz_cmp(test, exp);
+
+    mpz_clears(exp, pow_two, test, NULL);
+    assert(res == 0);
+}
+
+// Do t squarings of rop
+void squaring(mpz_t rop, unsigned long int t, const mpz_t mod) {
+    for (unsigned long int i = 0; i < t; ++i) {
+        mpz_mul(rop, rop, rop);
+        mpz_mod(rop, rop, mod);
+    }
+}
+
+// We set t to be an unsigned long int. This gives a maximum size of
+// 4'294'967'295.kappa, kappa0, kappa1 and gamma are all smaller than this, and
+// this can also be unsigned long int
+void proof(mpz_t output,
+           mpz_t const pk,
+           mpz_t const id,
+           mpz_t const g,
+           mpz_t const l,
+           mpz_t* precomp,
+           unsigned long bound,
+           unsigned long k,
+           unsigned long gamma,
+           unsigned long t)
+{
+    mpz_t one, two, block, z, k_exp, k0_exp, k1_exp;
+    unsigned long k0, k1, b, b0, b1;
+    
+    // output = id
+    mpz_init_set(output, id);
+
+    mpz_init_set_ui(one,1);
+    mpz_init_set_ui(two,2);
+    
+    mpz_inits(block, z, k_exp, k0_exp, k1_exp, NULL);
+    
+    // else we overflow
+//    assert(k<32);
+    
+    // floor(k/2)
+    k1 = k / 2;
+    
+    // k0 = k - k1
+    k0 = k - k1;
+    
+    // allocate 2^k ints representing the base
+    mpz_t y[(1 << k)];
+    for (b = 0; b < (1 << k); ++b) {
+        mpz_init_set(y[b], id);
+    }
+    
+    unsigned long int j = gamma;
+    // j = gamma - 1 -> 0
+    while (j > 0) {
+        j--;
+        //    for (unsigned long int j = gamma - 1; j >= 0; --j) {
+        //        std::cout << "j " << j << std::endl;
+        // x = x ^ (2^k)
+        squaring(output, k, pk);
+        
+        // y[b] = 1_g
+        for (b = 0; b < (1 << k); ++b) {
+            mpz_set(y[b], id);
+        }
+        
+//        for (unsigned long int i = 0; i < bound ; ++i) {
+        for (unsigned long int i = 0; t >= k * (i * gamma + j + 1) ; ++i) {
+            b = get_block(i * gamma + j, t, k, l);
+            
+            // yb = yb * Ci
+            mpz_mul(y[b], y[b], precomp[i]);
+        }
+        
+        for (b1 = 0; b1 < (1<<k1); ++b1) {
+            mpz_set(z, id);
+            for (b0 = 0; b0 < (1<<k0); ++b0) {
+                mpz_mul(z, z, y[b1 * (1<<k0) + b0]);
+                mpz_mod(z, z, pk);
+            }
+            mpz_powm_ui(z, z, b1 * (1 << k0), pk);
+            mpz_mul(output, output, z);
+            mpz_mod(output, output, pk);
+        }
+        
+        for (b0 = 0; b0 < (1<<k0); ++b0) {
+            mpz_set(z, id);
+            for (b1 = 0; b1 < (1<<k1); ++b1) {
+                mpz_mul(z, z, y[b1 * (1<<k0) + b0]);
+                mpz_mod(z, z, pk);
+            }
+            mpz_powm_ui(z, z, b0, pk);
+            mpz_mul(output, output, z);
+            mpz_mod(output, output, pk);
+        }
+    }
+    
+    mpz_clears(one, two, block, z, k_exp, k0_exp, k1_exp, NULL);
+    
+    for (b = 0; b < (1 << k); ++b) {
+        mpz_clear(y[b]);
+    }
+}
+
 //static unsigned short int k = 128;
 
 int main(int argc, const char * argv[]) {
-    mpz_t x, y;
-    mpz_init(x); mpz_init(y);
-    mpz_set_ui(x, 1955);
-    mpz_set_ui(y, 1000000009);
-    hash_prime(x, x, y, 50);
-    std::cout << sizeof(char);
+    unsigned long int t = 584;
+    unsigned long int k = 5;//log(t)/3;
+    unsigned long int gamma = 8;//sqrt(t);
+    unsigned long int bound = t / (k * gamma) + (t % (k * gamma) != 0);
+    
+    mpz_t tmp1, tmp2, p1, p2, pk, id, g, x, l, y, exp, output, h;
+    mpz_init_set_ui(tmp1, 4);
+    mpz_init_set_ui(tmp2, 3);
+    mpz_init_set_ui(id, 1);
+    mpz_init_set_ui(x, 2);
+    mpz_inits(p1, p2, pk, g, l, y, exp, output, h, NULL);
+    
+    hash_prime(p1, tmp1, tmp2, 50);
+    hash_prime(p2, tmp2, tmp1, 50);
+    
+    //pk = p1 * p2
+    mpz_mul(pk, p1, p2);
+    
+    // g = HG(x)
+    hash(g, pk, x);
+
+    // y = g^(2^t)
+    mpz_set(y, g);
+    squaring(y, t, pk);
+
+    // l = Hprime(g||y)
+    hash_prime(l, g, y, 50);
+
+    // exp = floor(2^t/l)
+    mpz_pow_2(exp, t);
+    mpz_fdiv_q(exp, exp, l);
+
+    
+    mpz_t precomp[bound + 1];
+    mpz_init_set(precomp[0], g);
+    
+    for (unsigned long int i = 1; i < bound + 1; ++i) {
+        mpz_init_set(precomp[i], precomp[i-1]);
+        squaring(precomp[i], k * gamma, pk);
+    }
+    
+    proof(output, pk, id, g, l, precomp, bound, k, gamma, t);
+    
+    mpz_set(h, g);
+    mpz_powm(h, h, exp, pk);
+    printz(h, "h");
+    printz(output, "out");
+    
+    
+    mpz_clears(NULL);
+    for (int i = 0; i < bound + 1; ++i) {
+        mpz_clear(precomp[i]);
+    }
+    test_get_block(t, k, l);
     return 0;
 }
