@@ -9,7 +9,6 @@
 #include <iostream>
 #include <stdio.h>
 #include <gmp.h>
-#include <openssl/rsa.h>
 #include <openssl/sha.h>
 #include <vector>
 #include <math.h>
@@ -22,7 +21,7 @@
 void hash_prime();
 
 //https://stackoverflow.com/a/2262447
-bool simpleSHA256(void* input,
+bool simpleSHA256(void *input,
                   unsigned long length,
                   unsigned char* md)
 {
@@ -40,8 +39,8 @@ bool simpleSHA256(void* input,
 }
 
 bool hash(mpz_t output,
-          const mpz_t pk,
-          const mpz_t x)
+          const mpz_t x,
+          const mpz_t pk)
 {
     char residue_string[] = "residue";
     int base = 10;
@@ -123,18 +122,6 @@ void printz(mpz_t const out, std::string s) {
     std::cout << s << ": " << mpz_get_str (NULL, 10, out) << std::endl;
 }
 
-bool verify(const mpz_t pk,
-            const mpz_t x,
-            mpz_t const proof,
-            unsigned short t)
-{
-    mpz_t g;
-    if (!hash(g, pk, x)) {
-        
-    }
-    return true;
-}
-
 // returns
 unsigned long int get_block(unsigned long i,
                             unsigned long t,
@@ -145,7 +132,7 @@ unsigned long int get_block(unsigned long i,
     mpz_init(block);
     mpz_init_set_ui(two, 2);
     mpz_init_set_ui(exp, t - k * (i + 1));
-
+    
     // b = b (mod l)
     mpz_powm(block, two, exp, l);
     
@@ -176,8 +163,8 @@ void test_get_block(unsigned long t,
     // exp = floor(2^t/l)
     mpz_pow_2(exp, t);
     mpz_fdiv_q(exp, exp, l);
-
-    unsigned long i = 0;
+    
+    unsigned long int i = 0;
     while (t > k * (i + 1)) {
         mpz_pow_2(pow_two, k * i);
         mpz_mul_ui(pow_two, pow_two, get_block(i, t, k, l));
@@ -186,7 +173,7 @@ void test_get_block(unsigned long t,
     }
     
     int res = mpz_cmp(test, exp);
-
+    
     mpz_clears(exp, pow_two, test, NULL);
     assert(res == 0);
 }
@@ -199,33 +186,51 @@ void squaring(mpz_t rop, unsigned long int t, const mpz_t mod) {
     }
 }
 
+void squaring_precomp(mpz_t rop,
+                      mpz_t precomp[],
+                      mpz_t g,
+                      unsigned long int k,
+                      unsigned long int gamma,
+                      unsigned long int t,
+                      const mpz_t mod)
+{
+    mpz_set(rop, g);
+    for (unsigned long int i = 0; i < t; ++i) {
+        if (i % (k * gamma) == 0) {
+            mpz_set(precomp[i / (k * gamma)], rop);
+        }
+        mpz_mul(rop, rop, rop);
+        mpz_mod(rop, rop, mod);
+    }
+}
+
 // We set t to be an unsigned long int. This gives a maximum size of
 // 4'294'967'295.kappa, kappa0, kappa1 and gamma are all smaller than this, and
 // this can also be unsigned long int
-void proof(mpz_t output,
-           mpz_t const pk,
-           mpz_t const id,
-           mpz_t const g,
-           mpz_t const l,
-           mpz_t* precomp,
-           unsigned long bound,
-           unsigned long k,
-           unsigned long gamma,
-           unsigned long t)
+void generate_proof(mpz_t output,
+                    mpz_t const pk,
+                    mpz_t const id,
+                    mpz_t const g,
+                    mpz_t const l,
+                    mpz_t* precomp,
+                    unsigned long bound,
+                    unsigned long k,
+                    unsigned long gamma,
+                    unsigned long t)
 {
     mpz_t one, two, block, z, k_exp, k0_exp, k1_exp;
     unsigned long k0, k1, b, b0, b1;
     
     // output = id
     mpz_init_set(output, id);
-
+    
     mpz_init_set_ui(one,1);
     mpz_init_set_ui(two,2);
     
     mpz_inits(block, z, k_exp, k0_exp, k1_exp, NULL);
     
     // else we overflow
-//    assert(k<32);
+    //    assert(k<32);
     
     // floor(k/2)
     k1 = k / 2;
@@ -253,7 +258,7 @@ void proof(mpz_t output,
             mpz_set(y[b], id);
         }
         
-//        for (unsigned long int i = 0; i < bound ; ++i) {
+        //        for (unsigned long int i = 0; i < bound ; ++i) {
         for (unsigned long int i = 0; t >= k * (i * gamma + j + 1) ; ++i) {
             b = get_block(i * gamma + j, t, k, l);
             
@@ -291,20 +296,139 @@ void proof(mpz_t output,
     }
 }
 
+bool test_generate_proof(mpz_t x,
+                         mpz_t id,
+                         unsigned long int t,
+                         unsigned long int k,
+                         unsigned long int gamma,
+                         mpz_t pk)
+{
+    mpz_t y, l, exp, proof;
+    mpz_inits(y, l, exp, proof, NULL);
+    
+    unsigned long int bound = t / (k * gamma) + (t % (k * gamma) != 0);
+    
+    mpz_t precomp[bound + 1];
+    for (unsigned long int i = 0; i < bound + 1; ++i) {
+        mpz_init(precomp[i]);
+    }
+    
+    squaring_precomp(y, precomp, x, k, gamma, t, pk);
+    
+    // l = Hprime(x||y)
+    hash_prime(l, x, y, 50);
+    
+    // exp = floor(2^t/l)
+    mpz_pow_2(exp, t);
+    mpz_fdiv_q(exp, exp, l);
+    
+    // y = g^floor(2^t/l)
+    mpz_powm(y, x, exp, pk);
+    
+    generate_proof(proof, pk, id, x, l, precomp, bound, k, gamma, t);
+    
+    bool res = (mpz_cmp(proof, y) == 0);
+    mpz_clears(y, l, exp, proof, NULL);
+    for (unsigned long int i = 0; i < bound + 1; ++i) {
+        mpz_clear(precomp[i]);
+    }
+    return res;
+}
+
+void eval(mpz_t output,
+          mpz_t proof,
+          mpz_t input,
+          unsigned long int t,
+          mpz_t pk)
+{
+    mpz_t g, l, exp, id;
+    mpz_inits(g, l, exp, id, NULL);
+    mpz_set_ui(id, 1);
+    
+    unsigned long int k = log(t)/3;
+    unsigned long int gamma = sqrt(t);
+    unsigned long int bound = t / (k * gamma) + (t % (k * gamma) != 0);
+    
+    // g = HG(x)
+    hash(g, input, pk);
+    
+    mpz_t precomp[bound + 1];
+    for (unsigned long int i = 0; i < bound + 1; ++i) {
+        mpz_init(precomp[i]);
+    }
+    squaring_precomp(output, precomp, g, k, gamma, t, pk);
+    
+    // l = Hprime(g||y)
+    hash_prime(l, g, output, 50);
+    
+    generate_proof(proof, pk, id, g, l, precomp, bound, k, gamma, t);
+    
+    // clear mpz
+    mpz_clears(g, l, exp, id, NULL);
+    for (unsigned long int i = 0; i < bound + 1; ++i) {
+        mpz_clear(precomp[i]);
+    }
+}
+
+bool verify(const mpz_t x,
+            const mpz_t y,
+            mpz_t const proof,
+            unsigned long int t,
+            const mpz_t pk)
+{
+    mpz_t g, l, r, tmp;
+    mpz_inits(g, l, tmp, NULL);
+    mpz_init_set_ui(r, 2);
+    
+    hash(g, x, pk);
+    
+    hash_prime(l, g, y, 50);
+    
+    // r = 2^t (mod l)
+    mpz_powm_ui(r, r, t, l);
+
+    // r = g^r
+    mpz_powm(r, g, r, pk);
+    
+    // tmp = pi^l
+    mpz_powm(tmp, proof, l, pk);
+    
+    // tmp = g^r * pi^l
+    mpz_mul(tmp, tmp, r);
+    mpz_mod(tmp, tmp, pk);
+    
+    printz(tmp, "tmp");
+    printz(y, "y");
+    
+    // res = true if g^r * pi^l == y
+    bool res = mpz_cmp(tmp, y) == 0;
+    mpz_clears(g, l, r, tmp, NULL);
+    return res;
+}
+
 //static unsigned short int k = 128;
 
 int main(int argc, const char * argv[]) {
-    unsigned long int t = 584;
-    unsigned long int k = 5;//log(t)/3;
-    unsigned long int gamma = 8;//sqrt(t);
+    clock_t start, end;
+    double cpu_time_used;
+    
+    // t = 2^26: 46s
+    // t = 2^27: 98s
+    // t = 2^28: 207s
+    
+    unsigned long int t = 1<<28;
+    unsigned long int k = log(t)/3;
+    unsigned long int gamma = sqrt(t);
     unsigned long int bound = t / (k * gamma) + (t % (k * gamma) != 0);
     
-    mpz_t tmp1, tmp2, p1, p2, pk, id, g, x, l, y, exp, output, h;
-    mpz_init_set_ui(tmp1, 4);
+    
+    mpz_t tmp1, tmp2, p1, p2, pk, x, y, proof, id;
+    mpz_init_set_ui(tmp1, 5);
     mpz_init_set_ui(tmp2, 3);
-    mpz_init_set_ui(id, 1);
+    mpz_inits(p1, p2, pk, y, proof, NULL);
     mpz_init_set_ui(x, 2);
-    mpz_inits(p1, p2, pk, g, l, y, exp, output, h, NULL);
+    mpz_init_set_ui(id, 1);
+    
     
     hash_prime(p1, tmp1, tmp2, 50);
     hash_prime(p2, tmp2, tmp1, 50);
@@ -312,41 +436,23 @@ int main(int argc, const char * argv[]) {
     //pk = p1 * p2
     mpz_mul(pk, p1, p2);
     
-    // g = HG(x)
-    hash(g, pk, x);
-
-    // y = g^(2^t)
-    mpz_set(y, g);
-    squaring(y, t, pk);
-
-    // l = Hprime(g||y)
-    hash_prime(l, g, y, 50);
-
-    // exp = floor(2^t/l)
-    mpz_pow_2(exp, t);
-    mpz_fdiv_q(exp, exp, l);
-
     
-    mpz_t precomp[bound + 1];
-    mpz_init_set(precomp[0], g);
-    
-    for (unsigned long int i = 1; i < bound + 1; ++i) {
-        mpz_init_set(precomp[i], precomp[i-1]);
-        squaring(precomp[i], k * gamma, pk);
-    }
-    
-    proof(output, pk, id, g, l, precomp, bound, k, gamma, t);
-    
-    mpz_set(h, g);
-    mpz_powm(h, h, exp, pk);
-    printz(h, "h");
-    printz(output, "out");
+    start = clock();
+    eval(y, proof, x, t, pk);
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    std::cout << "eval: "<< cpu_time_used << std::endl;
     
     
-    mpz_clears(NULL);
-    for (int i = 0; i < bound + 1; ++i) {
-        mpz_clear(precomp[i]);
-    }
-    test_get_block(t, k, l);
+    start = clock();
+    assert(verify(x, y, proof, t, pk));
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    std::cout << "verify: "<< cpu_time_used << std::endl;
+//    assert(test_generate_proof(x, id, t, k, gamma, pk));
+//    test_gxet_block(t, k, l);
+    
+//    std::cout << t - k * gamma * bound;
+    mpz_clears(tmp1, tmp2, p1, p2, pk, x, y, proof, id, NULL);
     return 0;
 }
