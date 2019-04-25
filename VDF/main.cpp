@@ -14,11 +14,8 @@
 #include <math.h>
 #include <string>
 
-//void generate_rsa_prime(mpz_class &p,
-//                        mpz_class &q,
-//                        unsigned short int modulus);
-
-void hash_prime();
+static mpz_t one;
+static mpz_t two;
 
 //https://stackoverflow.com/a/2262447
 bool simpleSHA256(void *input,
@@ -123,51 +120,44 @@ void printz(mpz_t const out, std::string s) {
 }
 
 // returns
-unsigned long int get_block(unsigned long i,
-                            unsigned long t,
-                            unsigned long k,
-                            mpz_t const l)
+// only called once per i
+// obtained a 5s speedup on 2^26 by not allocating any vars here
+void get_block(mpz_t block,
+               unsigned long i,
+               unsigned long t,
+               unsigned long k,
+               mpz_t const l)
 {
-    mpz_t block, exp, two;
-    mpz_init(block);
-    mpz_init_set_ui(two, 2);
-    mpz_init_set_ui(exp, t - k * (i + 1));
-    
-    // b = b (mod l)
-    mpz_powm(block, two, exp, l);
+    // b = 2^exp (mod l)
+    mpz_powm_ui(block, two, t - k * (i + 1), l);
     
     // b = 2^k * b
     mpz_mul_2exp(block, block, (mp_bitcnt_t)k);
     
     // b = floor(b/l)
     mpz_fdiv_q(block, block, l);
-    
-    // b should be the right size again ( < 2^k )
-    unsigned long int res = mpz_get_ui(block);
-    
-    mpz_clear(block);
-    mpz_clear(two);
-    mpz_clear(exp);
-    return res;
-    
 }
 
 //verify that sum_i(get_block(i)*2^(ki)) = floor(2^t/l)
-void test_get_block(unsigned long t,
+bool test_get_block(unsigned long t,
                     unsigned long k,
                     mpz_t const l)
 {
-    mpz_t exp, test, pow_two;
-    mpz_inits(exp, pow_two, test, NULL);
+    mpz_t exp, test, pow_two, block;
+    mpz_inits(exp, pow_two, test, block, NULL);
     
     // exp = floor(2^t/l)
     mpz_pow_2(exp, t);
     mpz_fdiv_q(exp, exp, l);
     
     unsigned long int i = 0;
+    unsigned long int b;
     while (t > k * (i + 1)) {
+        get_block(block, i, t, k, l);
+        b = mpz_get_ui(block);
+        
         mpz_pow_2(pow_two, k * i);
-        mpz_mul_ui(pow_two, pow_two, get_block(i, t, k, l));
+        mpz_mul_ui(pow_two, pow_two, b);
         mpz_add(test, test, pow_two);
         ++i;
     }
@@ -175,7 +165,7 @@ void test_get_block(unsigned long t,
     int res = mpz_cmp(test, exp);
     
     mpz_clears(exp, pow_two, test, NULL);
-    assert(res == 0);
+    return (res == 0);
 }
 
 // Do t squarings of rop
@@ -218,14 +208,11 @@ void generate_proof(mpz_t output,
                     unsigned long gamma,
                     unsigned long t)
 {
-    mpz_t one, two, block, z, k_exp, k0_exp, k1_exp;
+    mpz_t block, z, k_exp, k0_exp, k1_exp;
     unsigned long k0, k1, b, b0, b1;
     
     // output = id
     mpz_init_set(output, id);
-    
-    mpz_init_set_ui(one,1);
-    mpz_init_set_ui(two,2);
     
     mpz_inits(block, z, k_exp, k0_exp, k1_exp, NULL);
     
@@ -248,8 +235,6 @@ void generate_proof(mpz_t output,
     // j = gamma - 1 -> 0
     while (j > 0) {
         j--;
-        //    for (unsigned long int j = gamma - 1; j >= 0; --j) {
-        //        std::cout << "j " << j << std::endl;
         // x = x ^ (2^k)
         squaring(output, k, pk);
         
@@ -258,9 +243,9 @@ void generate_proof(mpz_t output,
             mpz_set(y[b], id);
         }
         
-        //        for (unsigned long int i = 0; i < bound ; ++i) {
         for (unsigned long int i = 0; t >= k * (i * gamma + j + 1) ; ++i) {
-            b = get_block(i * gamma + j, t, k, l);
+            get_block(block, i * gamma + j, t, k, l);
+            b = mpz_get_ui(block);
             
             // yb = yb * Ci
             mpz_mul(y[b], y[b], precomp[i]);
@@ -289,11 +274,12 @@ void generate_proof(mpz_t output,
         }
     }
     
-    mpz_clears(one, two, block, z, k_exp, k0_exp, k1_exp, NULL);
+    mpz_clears(block, z, k_exp, k0_exp, k1_exp, NULL);
     
     for (b = 0; b < (1 << k); ++b) {
         mpz_clear(y[b]);
     }
+
 }
 
 bool test_generate_proof(mpz_t x,
@@ -409,17 +395,26 @@ bool verify(const mpz_t x,
 //static unsigned short int k = 128;
 
 int main(int argc, const char * argv[]) {
+    mpz_init_set_ui(one, 1);
+    mpz_init_set_ui(two, 2);
+    
     clock_t start, end;
     double cpu_time_used;
     
+    //before get block change
     // t = 2^26: 46s
     // t = 2^27: 98s
     // t = 2^28: 207s
     
+    
+    //after get block change
+    // t = 2^26: 40s
+    // t = 2^27: 85s
+    // t = 2^28: 183s
     unsigned long int t = 1<<28;
-    unsigned long int k = log(t)/3;
-    unsigned long int gamma = sqrt(t);
-    unsigned long int bound = t / (k * gamma) + (t % (k * gamma) != 0);
+//    unsigned long int k = log(t)/3;
+//    unsigned long int gamma = sqrt(t);
+//    unsigned long int bound = t / (k * gamma) + (t % (k * gamma) != 0);
     
     
     mpz_t tmp1, tmp2, p1, p2, pk, x, y, proof, id;
@@ -442,17 +437,20 @@ int main(int argc, const char * argv[]) {
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
     std::cout << "eval: "<< cpu_time_used << std::endl;
-    
-    
+
+
     start = clock();
     assert(verify(x, y, proof, t, pk));
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
     std::cout << "verify: "<< cpu_time_used << std::endl;
-//    assert(test_generate_proof(x, id, t, k, gamma, pk));
-//    test_gxet_block(t, k, l);
     
-//    std::cout << t - k * gamma * bound;
-    mpz_clears(tmp1, tmp2, p1, p2, pk, x, y, proof, id, NULL);
+//    assert(test_generate_proof(x, id, t, k, gamma, pk));
+    
+//    unsigned long int k = log(t)/3;
+//    mpz_set_ui(tmp1, 17);
+//    test_get_block(t, k, tmp1);
+    
+    mpz_clears(one, two, tmp1, tmp2, p1, p2, pk, x, y, proof, id, NULL);
     return 0;
 }
