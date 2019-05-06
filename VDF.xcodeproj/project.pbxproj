@@ -7,15 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3A33D19B2242279E00A02119 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3A33D19A2242279E00A02119 /* main.cpp */; };
-		3A412D0D2248FB6F0060A28E /* libgmpxx.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A412D0C2248FB6F0060A28E /* libgmpxx.4.dylib */; };
-		3A412D0F2248FC330060A28E /* libgmp.10.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A412D0E2248FC330060A28E /* libgmp.10.dylib */; };
-		3A412D12224903910060A28E /* libcrypto.1.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A412D10224903910060A28E /* libcrypto.1.0.0.dylib */; };
-		3A412D13224903910060A28E /* libssl.1.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A412D11224903910060A28E /* libssl.1.0.0.dylib */; };
+		3ABB9062228074BE00FEF25B /* VDF.c in Sources */ = {isa = PBXBuildFile; fileRef = 3ABB905A228074BE00FEF25B /* VDF.c */; };
+		3ABB9063228074BE00FEF25B /* Extra.c in Sources */ = {isa = PBXBuildFile; fileRef = 3ABB905E228074BE00FEF25B /* Extra.c */; };
+		3ABB9064228074BE00FEF25B /* Testing.c in Sources */ = {isa = PBXBuildFile; fileRef = 3ABB905F228074BE00FEF25B /* Testing.c */; };
+		3ABB9065228074BE00FEF25B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3ABB9060228074BE00FEF25B /* main.c */; };
+		3ABB9066228074BE00FEF25B /* Group.c in Sources */ = {isa = PBXBuildFile; fileRef = 3ABB9061228074BE00FEF25B /* Group.c */; };
+		3ABB906A2280769600FEF25B /* libgmp.10.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 3ABB90682280768100FEF25B /* libgmp.10.dylib */; };
+		3ABB906C228076B400FEF25B /* libssl.1.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 3ABB906B228076B400FEF25B /* libssl.1.0.0.dylib */; };
+		3ABB906E2280771C00FEF25B /* libcrypto.1.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 3ABB906D2280771C00FEF25B /* libcrypto.1.0.0.dylib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		3A33D1952242279E00A02119 /* CopyFiles */ = {
+		3ABFD5C62280745C00C234F4 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -27,75 +30,88 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		3A33D1972242279E00A02119 /* VDF */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = VDF; sourceTree = BUILT_PRODUCTS_DIR; };
-		3A33D19A2242279E00A02119 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		3A412D0C2248FB6F0060A28E /* libgmpxx.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgmpxx.4.dylib; path = ../../../usr/local/Cellar/gmp/6.1.2_2/lib/libgmpxx.4.dylib; sourceTree = "<group>"; };
-		3A412D0E2248FC330060A28E /* libgmp.10.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgmp.10.dylib; path = ../../../usr/local/Cellar/gmp/6.1.2_2/lib/libgmp.10.dylib; sourceTree = "<group>"; };
-		3A412D10224903910060A28E /* libcrypto.1.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcrypto.1.0.0.dylib; path = ../../../usr/local/Cellar/openssl/1.0.2r/lib/libcrypto.1.0.0.dylib; sourceTree = "<group>"; };
-		3A412D11224903910060A28E /* libssl.1.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libssl.1.0.0.dylib; path = ../../../usr/local/Cellar/openssl/1.0.2r/lib/libssl.1.0.0.dylib; sourceTree = "<group>"; };
+		3ABB9059228074BE00FEF25B /* Group.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Group.h; sourceTree = "<group>"; };
+		3ABB905A228074BE00FEF25B /* VDF.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = VDF.c; sourceTree = "<group>"; };
+		3ABB905B228074BE00FEF25B /* Extra.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Extra.h; sourceTree = "<group>"; };
+		3ABB905C228074BE00FEF25B /* VDF.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VDF.h; sourceTree = "<group>"; };
+		3ABB905D228074BE00FEF25B /* Testing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Testing.h; sourceTree = "<group>"; };
+		3ABB905E228074BE00FEF25B /* Extra.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Extra.c; sourceTree = "<group>"; };
+		3ABB905F228074BE00FEF25B /* Testing.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Testing.c; sourceTree = "<group>"; };
+		3ABB9060228074BE00FEF25B /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		3ABB9061228074BE00FEF25B /* Group.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Group.c; sourceTree = "<group>"; };
+		3ABB90682280768100FEF25B /* libgmp.10.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgmp.10.dylib; path = ../../../usr/local/Cellar/gmp/6.1.2_2/lib/libgmp.10.dylib; sourceTree = "<group>"; };
+		3ABB906B228076B400FEF25B /* libssl.1.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libssl.1.0.0.dylib; path = ../../../usr/local/Cellar/openssl/1.0.2r/lib/libssl.1.0.0.dylib; sourceTree = "<group>"; };
+		3ABB906D2280771C00FEF25B /* libcrypto.1.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcrypto.1.0.0.dylib; path = ../../../usr/local/Cellar/openssl/1.0.2r/lib/libcrypto.1.0.0.dylib; sourceTree = "<group>"; };
+		3ABFD5C82280745C00C234F4 /* VDF */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = VDF; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		3A33D1942242279E00A02119 /* Frameworks */ = {
+		3ABFD5C52280745C00C234F4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3A412D12224903910060A28E /* libcrypto.1.0.0.dylib in Frameworks */,
-				3A412D13224903910060A28E /* libssl.1.0.0.dylib in Frameworks */,
-				3A412D0F2248FC330060A28E /* libgmp.10.dylib in Frameworks */,
-				3A412D0D2248FB6F0060A28E /* libgmpxx.4.dylib in Frameworks */,
+				3ABB906E2280771C00FEF25B /* libcrypto.1.0.0.dylib in Frameworks */,
+				3ABB906C228076B400FEF25B /* libssl.1.0.0.dylib in Frameworks */,
+				3ABB906A2280769600FEF25B /* libgmp.10.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		3A33D18E2242279E00A02119 = {
+		3ABB90672280768100FEF25B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				3A33D1992242279E00A02119 /* VDF */,
-				3A33D1982242279E00A02119 /* Products */,
-				3A412D0B2248FB6E0060A28E /* Frameworks */,
+				3ABB906D2280771C00FEF25B /* libcrypto.1.0.0.dylib */,
+				3ABB906B228076B400FEF25B /* libssl.1.0.0.dylib */,
+				3ABB90682280768100FEF25B /* libgmp.10.dylib */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		3ABFD5BF2280745C00C234F4 = {
+			isa = PBXGroup;
+			children = (
+				3ABFD5CA2280745C00C234F4 /* VDF */,
+				3ABFD5C92280745C00C234F4 /* Products */,
+				3ABB90672280768100FEF25B /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
-		3A33D1982242279E00A02119 /* Products */ = {
+		3ABFD5C92280745C00C234F4 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				3A33D1972242279E00A02119 /* VDF */,
+				3ABFD5C82280745C00C234F4 /* VDF */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		3A33D1992242279E00A02119 /* VDF */ = {
+		3ABFD5CA2280745C00C234F4 /* VDF */ = {
 			isa = PBXGroup;
 			children = (
-				3A33D19A2242279E00A02119 /* main.cpp */,
+				3ABB9060228074BE00FEF25B /* main.c */,
+				3ABB905E228074BE00FEF25B /* Extra.c */,
+				3ABB905B228074BE00FEF25B /* Extra.h */,
+				3ABB9061228074BE00FEF25B /* Group.c */,
+				3ABB9059228074BE00FEF25B /* Group.h */,
+				3ABB905F228074BE00FEF25B /* Testing.c */,
+				3ABB905D228074BE00FEF25B /* Testing.h */,
+				3ABB905A228074BE00FEF25B /* VDF.c */,
+				3ABB905C228074BE00FEF25B /* VDF.h */,
 			);
 			path = VDF;
-			sourceTree = "<group>";
-		};
-		3A412D0B2248FB6E0060A28E /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				3A412D10224903910060A28E /* libcrypto.1.0.0.dylib */,
-				3A412D11224903910060A28E /* libssl.1.0.0.dylib */,
-				3A412D0E2248FC330060A28E /* libgmp.10.dylib */,
-				3A412D0C2248FB6F0060A28E /* libgmpxx.4.dylib */,
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		3A33D1962242279E00A02119 /* VDF */ = {
+		3ABFD5C72280745C00C234F4 /* VDF */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 3A33D19E2242279E00A02119 /* Build configuration list for PBXNativeTarget "VDF" */;
+			buildConfigurationList = 3ABFD5CF2280745C00C234F4 /* Build configuration list for PBXNativeTarget "VDF" */;
 			buildPhases = (
-				3A33D1932242279E00A02119 /* Sources */,
-				3A33D1942242279E00A02119 /* Frameworks */,
-				3A33D1952242279E00A02119 /* CopyFiles */,
+				3ABFD5C42280745C00C234F4 /* Sources */,
+				3ABFD5C52280745C00C234F4 /* Frameworks */,
+				3ABFD5C62280745C00C234F4 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -103,53 +119,57 @@
 			);
 			name = VDF;
 			productName = VDF;
-			productReference = 3A33D1972242279E00A02119 /* VDF */;
+			productReference = 3ABFD5C82280745C00C234F4 /* VDF */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		3A33D18F2242279E00A02119 /* Project object */ = {
+		3ABFD5C02280745C00C234F4 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1010;
+				LastUpgradeCheck = 1020;
 				ORGANIZATIONNAME = LACAL;
 				TargetAttributes = {
-					3A33D1962242279E00A02119 = {
-						CreatedOnToolsVersion = 10.1;
+					3ABFD5C72280745C00C234F4 = {
+						CreatedOnToolsVersion = 10.2.1;
 					};
 				};
 			};
-			buildConfigurationList = 3A33D1922242279E00A02119 /* Build configuration list for PBXProject "VDF" */;
+			buildConfigurationList = 3ABFD5C32280745C00C234F4 /* Build configuration list for PBXProject "VDF" */;
 			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 			);
-			mainGroup = 3A33D18E2242279E00A02119;
-			productRefGroup = 3A33D1982242279E00A02119 /* Products */;
+			mainGroup = 3ABFD5BF2280745C00C234F4;
+			productRefGroup = 3ABFD5C92280745C00C234F4 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				3A33D1962242279E00A02119 /* VDF */,
+				3ABFD5C72280745C00C234F4 /* VDF */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
-		3A33D1932242279E00A02119 /* Sources */ = {
+		3ABFD5C42280745C00C234F4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3A33D19B2242279E00A02119 /* main.cpp in Sources */,
+				3ABB9066228074BE00FEF25B /* Group.c in Sources */,
+				3ABB9063228074BE00FEF25B /* Extra.c in Sources */,
+				3ABB9064228074BE00FEF25B /* Testing.c in Sources */,
+				3ABB9065228074BE00FEF25B /* main.c in Sources */,
+				3ABB9062228074BE00FEF25B /* VDF.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		3A33D19C2242279E00A02119 /* Debug */ = {
+		3ABFD5CD2280745C00C234F4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -208,7 +228,7 @@
 			};
 			name = Debug;
 		};
-		3A33D19D2242279E00A02119 /* Release */ = {
+		3ABFD5CE2280745C00C234F4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -260,41 +280,41 @@
 			};
 			name = Release;
 		};
-		3A33D19F2242279E00A02119 /* Debug */ = {
+		3ABFD5D02280745C00C234F4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 9UNSKZZGQM;
-				FRAMEWORK_SEARCH_PATHS = "";
 				HEADER_SEARCH_PATHS = (
 					/usr/local/include,
 					/usr/local/opt/openssl/include,
 				);
 				LIBRARY_SEARCH_PATHS = (
-					/usr/local/lib,
-					/usr/local/opt/gmp/lib,
 					/usr/local/opt/openssl/lib,
+					/usr/local/opt/gmp/lib,
+					/usr/local/lib,
+					/usr/local/Cellar/gmp/6.1.2_2/lib,
+					/usr/local/Cellar/openssl/1.0.2r/lib,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
 		};
-		3A33D1A02242279E00A02119 /* Release */ = {
+		3ABFD5D12280745C00C234F4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 9UNSKZZGQM;
-				FRAMEWORK_SEARCH_PATHS = "";
 				HEADER_SEARCH_PATHS = (
 					/usr/local/include,
 					/usr/local/opt/openssl/include,
 				);
 				LIBRARY_SEARCH_PATHS = (
-					/usr/local/lib,
-					/usr/local/opt/gmp/lib,
 					/usr/local/opt/openssl/lib,
+					/usr/local/opt/gmp/lib,
+					/usr/local/lib,
+					/usr/local/Cellar/gmp/6.1.2_2/lib,
+					/usr/local/Cellar/openssl/1.0.2r/lib,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -303,25 +323,25 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		3A33D1922242279E00A02119 /* Build configuration list for PBXProject "VDF" */ = {
+		3ABFD5C32280745C00C234F4 /* Build configuration list for PBXProject "VDF" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				3A33D19C2242279E00A02119 /* Debug */,
-				3A33D19D2242279E00A02119 /* Release */,
+				3ABFD5CD2280745C00C234F4 /* Debug */,
+				3ABFD5CE2280745C00C234F4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		3A33D19E2242279E00A02119 /* Build configuration list for PBXNativeTarget "VDF" */ = {
+		3ABFD5CF2280745C00C234F4 /* Build configuration list for PBXNativeTarget "VDF" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				3A33D19F2242279E00A02119 /* Debug */,
-				3A33D1A02242279E00A02119 /* Release */,
+				3ABFD5D02280745C00C234F4 /* Debug */,
+				3ABFD5D12280745C00C234F4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 3A33D18F2242279E00A02119 /* Project object */;
+	rootObject = 3ABFD5C02280745C00C234F4 /* Project object */;
 }
