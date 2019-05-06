@@ -12,6 +12,8 @@
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
+// TODO: Implement same size int
+#include <stdint.h>
 
 #include "Extra.h"
 #include "Group.h"
@@ -64,7 +66,10 @@ int main(int argc, const char * argv[]) {
 
 
 //    start = clock();
-    verify(x, y, proof, t, pk);
+    int i = verify(x, y, proof, t, pk);
+    
+    printf("res: %u", i);
+    
 //    end = clock();
 //    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
 //    printf("time used for vefify: %lf\n", cpu_time_used);

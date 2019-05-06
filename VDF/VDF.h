@@ -21,14 +21,14 @@ void eval(mpz_t rop,
           unsigned long int t,
           const mpz_t pk);
 
-//
+// will return 0 if the test passes
 int verify(const mpz_t x,
            const mpz_t y,
            const mpz_t proof,
            unsigned long int t,
            const mpz_t pk);
 
-//
+// Generates the proof in a faster way
 void generate_proof(mpz_t output,
                     const mpz_t id,
                     const mpz_t g,
@@ -40,6 +40,7 @@ void generate_proof(mpz_t output,
                     unsigned long t,
                     const mpz_t pk);
 
+// Required for generate_proof
 void get_block(mpz_t block,
                unsigned long i,
                unsigned long t,

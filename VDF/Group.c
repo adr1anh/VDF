@@ -9,6 +9,32 @@
 #include "Group.h"
 #include "Extra.h"
 
+void RSA_generate_prime(mpz_t pk, gmp_randstate_t state, int rep, mp_bitcnt_t modulus)
+{
+    mpz_t p, q, bound;
+    mpz_inits(p, q, bound, NULL);
+    
+    mp_bitcnt_t n;
+    
+    n = modulus/2;
+    mpz_pow2(bound, n - 1);
+    
+    while (mpz_probab_prime_p(p, rep) == 0 || mpz_cmp(p, bound) < 0) {
+        mpz_urandomb(p, state, n);
+    }
+    
+    n = modulus - n;
+    mpz_pow2(bound, n - 1);
+    
+    while (mpz_probab_prime_p(q, rep) == 0 || mpz_cmp(q, bound) < 0) {
+        mpz_urandomb(q, state, n);
+    }
+    
+    mpz_mul(pk, p, q);
+    
+    mpz_clears(p, q, bound, NULL);
+}
+
 void RSA_hash(mpz_t rop, const mpz_t g, const mpz_t mod)
 {
     hash(rop, g);

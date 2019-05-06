@@ -11,6 +11,8 @@
 #include "Group.h"
 #include "VDF.h"
 
+
+
 int test_generate_proof(mpz_t x, mpz_t id, unsigned long int t, unsigned long int k, unsigned long int gamma, const mpz_t pk)
 {
     mpz_t y, l, exp, proof;

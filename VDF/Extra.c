@@ -11,7 +11,7 @@
 #include <openssl/sha.h>
 #include <string.h>
 
-// Function to calculate 2^t using bit setting, should be faster than usual
+
 void mpz_pow2(mpz_t rop, unsigned long int exp) {
     mpz_set_ui(rop, 0);
     mpz_setbit(rop, exp);
