@@ -10,42 +10,87 @@
 #define VDF_h
 
 #include <gmp.h>
+#include <stdint.h>
 
-// RSA Methods
+#include "Group.h"
 
-// rop = input^(2^t)
-// proof = 
-void eval(mpz_t rop,
-          mpz_t proof,
-          const mpz_t input,
-          unsigned long int t,
-          const mpz_t pk);
 
-// will return 0 if the test passes
-int verify(const mpz_t x,
-           const mpz_t y,
-           const mpz_t proof,
-           unsigned long int t,
-           const mpz_t pk);
+// eval:
+// Evaluate the VDF
+//
+// ouput:
+// Calculates g^(2^t)
+//
+// proof:
+// Calculates g^floor(2^t/l) in O(t/ln(t))
+//
+// input:
+//
+// t:
+//
+void eval(GroupElement output,
+          GroupElement proof,
+          const GroupElement input,
+          uint64_t t);
 
-// Generates the proof in a faster way
-void generate_proof(mpz_t output,
-                    const mpz_t id,
-                    const mpz_t g,
-                    const mpz_t l,
-                    const mpz_t* precomp,
-                    unsigned long bound,
-                    unsigned long k,
-                    unsigned long gamma,
-                    unsigned long t,
-                    const mpz_t pk);
+// verify:
+// Verification of a computed output and proof
+//
+// input:
+//
+// output:
+//
+// proof:
+//
+// t:
+//
+// return:
+// 0 if the test passe, anything else otherwise
+int verify(const GroupElement input,
+           const GroupElement output,
+           const GroupElement proof,
+           uint64_t t);
 
-// Required for generate_proof
+// generate_proof:
+// Verification of a computed output and proof
+//
+// input:
+//
+// output:
+//
+// proof:
+//
+// t:
+//
+// return:
+// 0 if the test passe, anything else otherwise
+void generate_proof(GroupElement proof,
+                    const GroupElement identity,
+                    const GroupElement input_hashed,
+                    const GroupElement* precomputed,
+                    const mpz_t prime,
+                    uint64_t t,
+                    uint64_t gamma,
+                    uint8_t k);
+
+// get_block:
+// Verification of a computed output and proof
+//
+// block:
+//
+// i:
+//
+// t:
+//
+// k:
+//
+// prime:
+//
 void get_block(mpz_t block,
-               unsigned long i,
-               unsigned long t,
-               unsigned long k,
-               const mpz_t l);
+               uint64_t i,
+               uint64_t t,
+               uint8_t k,
+               const mpz_t prime);
 
 
 #endif /* VDF_h */

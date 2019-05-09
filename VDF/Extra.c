@@ -11,7 +11,6 @@
 #include <openssl/sha.h>
 #include <string.h>
 
-
 void mpz_pow2(mpz_t rop, unsigned long int exp) {
     mpz_set_ui(rop, 0);
     mpz_setbit(rop, exp);
@@ -59,46 +58,45 @@ int hash(mpz_t rop, const mpz_t x)
     }
 }
 
+
 int hash_prime(mpz_t output,
-               const mpz_t x,
-               const mpz_t y,
+               const GroupElement x,
+               const GroupElement y,
                int reps)
 {
-    char prime_string[] = "prime";
-    int base = 10;
-    size_t prime_len = strlen(prime_string);
-    size_t x_len = mpz_sizeinbase(x, base);
-    size_t y_len = mpz_sizeinbase(y, base);
+    // Get the three strings which will be concatenated to produce a 256bit hash
+    char* prime_string = "prime";
+    char* x_string = group_get_string(x);
+    char* y_string = group_get_string(y);
     
-    char concatenated_string[prime_len + x_len + y_len + 32];
-    // Concat the string
-    strcpy(concatenated_string, prime_string);
-    mpz_get_str(&concatenated_string[prime_len], base, x);
-    mpz_get_str(&concatenated_string[prime_len + x_len], base, y);
+    unsigned char md[SHA256_DIGEST_LENGTH];
     
-    for (int i = 0; i < INT32_MAX; ++i) {
-        int count, d, c;
-        count = 0;
+    // We add at every iteration an extra byte to the concatenated string
+    // We should never have to go beyond UINT32_MAX
+    for (uint32_t i = 0; i < UINT32_MAX; ++i) {
+        SHA256_CTX context;
+        if(!SHA256_Init(&context))
+            return 1;
         
-        // Append binary string of i until we find a prime
-        for (c = 31 ; c >= 0 ; c--)
-        {
-            d = i >> c;
-            if (d & 1)
-                concatenated_string[prime_len + x_len + y_len + count] = 1 + '0';
-            else
-                concatenated_string[prime_len + x_len + y_len + count] = 0 + '0';
-            count++;
-        }
+        // Concatenate "prime"||"x"||"y"||"i" by feeding the SHA context with
+        // these 4 data inputs
+        if(!SHA256_Update(&context, prime_string, strlen(prime_string)))
+            return 2;
+        if(!SHA256_Update(&context, x_string, strlen(x_string)))
+            return 2;
+        if(!SHA256_Update(&context, y_string, strlen(y_string)))
+            return 2;
+        if(!SHA256_Update(&context, &i, sizeof(uint32_t)))
+            return 2;
         
-        unsigned char md[SHA256_DIGEST_LENGTH]; // 32 bytes
-        if(!simpleSHA256(md, concatenated_string, sizeof(concatenated_string) * sizeof(char)))
-        {
-            // error
-        }
+        // Calculate hash into md (message digest)
+        if(!SHA256_Final(md, &context))
+            return 3;
+        
+        // Convert the message digest
         mpz_import(output, SHA256_DIGEST_LENGTH, 1, sizeof(unsigned char), 0, 0, md);
         
-        
+        // Chech if the output is a probable prime
         int ret = mpz_probab_prime_p(output, reps);
         if (ret) {
             return ret;
@@ -106,4 +104,31 @@ int hash_prime(mpz_t output,
     }
     
     return 0;
+}
+
+void generate_prime(mpz_t pk, gmp_randstate_t state, int rep, mp_bitcnt_t modulus)
+{
+    mpz_t p;
+    mpz_init(p);
+    mpz_set_ui(pk, 1);
+
+    mp_bitcnt_t n;
+
+    n = modulus/2;
+
+    while (mpz_probab_prime_p(p, rep) == 0) {
+        mpz_urandomb(p, state, n);
+    }
+    
+    mpz_mul(pk, pk, p);
+
+    n = modulus - n;
+    
+    while (mpz_probab_prime_p(p, rep) == 0 ) {
+        mpz_urandomb(p, state, n);
+    }
+
+    mpz_mul(pk, pk, p);
+
+    mpz_clear(p);
 }

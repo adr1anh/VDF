@@ -11,8 +11,9 @@
 
 #include <gmp.h>
 
-static mpz_t one;
-static mpz_t two;
+#include "Group.h"
+
+extern mpz_t two;
 
 // Function to calculate 2^t using bit setting, should be faster than usual
 void mpz_pow2(mpz_t rop, unsigned long int exp);
@@ -28,9 +29,16 @@ int hash(mpz_t rop, const mpz_t x);
 
 // Generate a random prime in output which will depend on input x, y.
 // Can specify the number of Miller-Rabin tests we perform
+//int hash_prime(mpz_t output,
+//               const mpz_t x,
+//               const mpz_t y,
+//               int reps);
 int hash_prime(mpz_t output,
-               const mpz_t x,
-               const mpz_t y,
+               const GroupElement x,
+               const GroupElement y,
                int reps);
+
+
+void generate_prime(mpz_t pk, gmp_randstate_t state, int rep, mp_bitcnt_t modulus);
 
 #endif /* Extra_h */
