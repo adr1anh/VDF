@@ -7,3 +7,5 @@ VDF/Presentation.log
 VDF/Presentation.fls
 VDF/Presentation.fdb_latexmk
 VDF/Presentation.aux
+*.o
+VDF/VDF

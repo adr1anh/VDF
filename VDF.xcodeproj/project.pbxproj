@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3A1F3353228C3A98001A911E /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F3352228C3A98001A911E /* Makefile */; };
 		3ABB9062228074BE00FEF25B /* VDF.c in Sources */ = {isa = PBXBuildFile; fileRef = 3ABB905A228074BE00FEF25B /* VDF.c */; };
 		3ABB9063228074BE00FEF25B /* Extra.c in Sources */ = {isa = PBXBuildFile; fileRef = 3ABB905E228074BE00FEF25B /* Extra.c */; };
 		3ABB9065228074BE00FEF25B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3ABB9060228074BE00FEF25B /* main.c */; };
@@ -29,6 +30,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		3A1F3352228C3A98001A911E /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; usesTabs = 1; };
 		3ABB9059228074BE00FEF25B /* Group.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Group.h; sourceTree = "<group>"; };
 		3ABB905A228074BE00FEF25B /* VDF.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = VDF.c; sourceTree = "<group>"; };
 		3ABB905B228074BE00FEF25B /* Extra.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Extra.h; sourceTree = "<group>"; };
@@ -93,6 +95,7 @@
 				3ABB9059228074BE00FEF25B /* Group.h */,
 				3ABB905A228074BE00FEF25B /* VDF.c */,
 				3ABB905C228074BE00FEF25B /* VDF.h */,
+				3A1F3352228C3A98001A911E /* Makefile */,
 			);
 			path = VDF;
 			sourceTree = "<group>";
@@ -153,6 +156,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3A1F3353228C3A98001A911E /* Makefile in Sources */,
 				3ABB9066228074BE00FEF25B /* Group.c in Sources */,
 				3ABB9063228074BE00FEF25B /* Extra.c in Sources */,
 				3ABB9065228074BE00FEF25B /* main.c in Sources */,

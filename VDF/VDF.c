@@ -271,6 +271,7 @@ void eval(ProofData* outputs,
         hash_prime(outputs[i].prime, outputs[i].input, y, 10);
         
         pthread_create(&thread_id[i], NULL, generate_proof_parallel, &(outputs[i]));
+//        generate_proof_parallel(&(outputs[i]));
     }
     
     for (uint8_t i = 0; i < segments; ++i) {

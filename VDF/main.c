@@ -20,54 +20,63 @@
 mpz_t two;
 
 int main(int argc, const char * argv[]) {
+    uint8_t seed;
+    uint32_t rsa_key_length;
+    uint64_t input_int;
+    uint8_t t_exponent;
+    double overhead;
+    uint8_t segments;
+    
+    if (argc != 7) {
+        printf("Must provide arguments seed, rsa_key_length, input_int, t_exponent, overhead, segments\n");
+        seed = 42;
+        rsa_key_length = 8192;
+        input_int = 3;
+        t_exponent = 17;
+        overhead = 20.0;
+        segments = 3;
+    } else {
+        seed = atoi(argv[1]);
+        rsa_key_length = atoi(argv[2]);
+        input_int = atoi(argv[3]);
+        t_exponent = atoi(argv[4]);
+        overhead = atof(argv[5]);
+        segments = atoi(argv[6]);
+    }
+    
     mpz_init_set_ui(two, 2);
     
     clock_t start, end;
     double cpu_time_used;
     
-    uint64_t t = (1<<15) +1 ;
+    uint64_t t = 1 << t_exponent;
 
     
     gmp_randstate_t state;
     gmp_randinit_default(state);
-    gmp_randseed_ui(state, 42); //Use a seed to make output reproducible
+    gmp_randseed_ui(state, seed); //Use a seed to make output reproducible
     mpz_t pk;
     mpz_init(pk);
-    generate_prime(pk, state, 3, 8000);
+    generate_prime(pk, state, 2, rsa_key_length);
     gmp_printf("pk: %Zd\n", pk);
     
-    GroupElement input = group_init_set_ui(&pk, 4);
+    GroupElement input = group_init_set_ui(&pk, input_int);
     
-    uint8_t segments = 3;
-    double overhead = 20.0;
     ProofData* outputs = malloc(sizeof(ProofData) * segments);
     
-    start = clock();
-    eval(outputs, input, t, overhead, segments);
-    end = clock();
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("time used for eval multi %u: \t\t %lf\n", segments, cpu_time_used);
-    
-    segments = 2;
-    start = clock();
-    eval(outputs, input, t, overhead, segments);
-    end = clock();
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("time used for eval multi %u: \t\t %lf\n", segments, cpu_time_used);
-    
-    segments = 1;
-    start = clock();
-    eval(outputs, input, t, overhead, segments);
-    end = clock();
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("time used for eval multi %u: \t\t %lf\n", segments, cpu_time_used);
-    
-//    start = clock();
-//    assert(verify_short(x, prime1, proof1, t1) == 0);
-    for (uint8_t i = 0; i < segments; ++i) {
-        assert(verify(outputs[i]) == 0);
-        assert(verify_prime(outputs[i]) == 0);
+    for (uint8_t i = 1; i <= segments; ++i) {
+        start = clock();
+        eval(outputs, input, t, overhead, i);
+        end = clock();
+        cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+        printf("time used for eval multi %u: \t\t %lf\n", i, cpu_time_used);
+        for (uint8_t j = 0; j < i; ++j) {
+            assert(verify(outputs[j]) == 0);
+            assert(verify_prime(outputs[j]) == 0);
+        }
     }
+    
+
 
     vdf_clear_outputs(outputs, segments);
     free(outputs);

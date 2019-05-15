@@ -14,6 +14,8 @@
 
 #include "Group.h"
 
+
+
 extern mpz_t two;
 
 // Function to calculate 2^t using bit setting, should be faster than usual
