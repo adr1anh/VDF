@@ -169,17 +169,6 @@ void group_square(GroupElement rop, const GroupElement g);
 // Result of g^exp
 void group_pow(GroupElement rop, const GroupElement g, const mpz_t exp);
 
-// group_pow_ui:
-// Exponentiation g^exp where exp is an unsigned integer
-//
-// g:
-// Base element
-//
-// exp:
-// Exponent
-//
-// rop:
-// Result of g^exp
-void group_pow_ui(GroupElement rop, const GroupElement g, unsigned long exp);
+
 
 #endif /* Group_h */

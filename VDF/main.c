@@ -48,14 +48,14 @@ int main(int argc, const char * argv[]) {
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
     printf("time used for eval multi %u: \t\t %lf\n", segments, cpu_time_used);
     
-//    segments = 2;
+    segments = 2;
     start = clock();
     eval(outputs, input, t, overhead, segments);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
     printf("time used for eval multi %u: \t\t %lf\n", segments, cpu_time_used);
     
-//    segments = 1;
+    segments = 1;
     start = clock();
     eval(outputs, input, t, overhead, segments);
     end = clock();
