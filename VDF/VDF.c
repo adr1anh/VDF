@@ -10,167 +10,122 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
+#include <pthread.h>
 
 #include "VDF.h"
 #include "Extra.h"
 
-
-
-uint64_t precomputed_lenth(uint64_t t, uint64_t gamma, uint8_t k) {
-    return t / (gamma * k) + (t % (gamma * k) != 0);
-}
-
-uint8_t find_optimal_k(uint64_t t, uint64_t gamma) {
-    // The choice of gamma should be around t^(1/2) as this is a halfway between
-    // memory and computation optimality
-    
-    // We use Newton's method for finding the minimum of f(k) = t/k + gamma*2^(k+1)
-    // That is, a zero of g(k) = f'(k)
-    // g(k) = -t/k^2 + gamma*ln(2)*2^(k+1)
-    // g'(k) = 2*t/k^3 + gamma*ln(2)^2*2^(k+1)
-    //
-    // x(n+1) = x(n) - g(x(n))/g'(x(n))
-    
-    // For t =2^26 and k is opt 31s
-    // For t =2^26 and k is opt 32.7s
-//    return log(t)/3;
-    double xn, xn1, ln2, tmp;
-    // We use an int for k because it will never be larger than 64 (not bits!)
-    // The zero of g' increases logarithmically in t
-    int k;
-    xn = 1;
-    k = 0;
-    ln2 = log(2);
-
-
-    // Check if this works
-//    while (rint(xn) != k) {
-    for (int i = 0; i<5; ++i){
-        tmp = ln2 * gamma * exp2(xn + 1);
-        xn1 = xn - (- (double)t/(xn*xn) + tmp) / (2*(double)t/(xn*xn*xn) + ln2*tmp);
-        xn = xn1;
-        k = rint(xn1);
-    }
-    return (uint8_t)k;
-}
-
-
-void eval(GroupElement output,
-          GroupElement proof,
-          const GroupElement input,
-          uint64_t t)
+int verify(const ProofData data)
 {
-    mpz_t* context = group_get_context(input);
-    
-    GroupElement input_hashed = group_init(context);
-    GroupElement identity = group_get_identity(context);
-    
-    mpz_t prime;
-    mpz_init(prime); //Bane of my existence
-    
-    uint64_t gamma = sqrt(t);
-    uint8_t k = find_optimal_k(t, gamma);
-    // This is the size of the array of intermediary calculations of g^2^t
-    uint64_t bound = precomputed_lenth(t, gamma, k);
-    
-    // Hash our input to a random element of the group
-    group_hash(input_hashed, input);
-    group_set(output, input_hashed);
-    
-    // Calculate g^(2^t) and save every kappa*gamma steps
-    GroupElement precomputed[bound+1];
-    for (uint64_t i = 0; i < t; ++i) {
-        if (i % (gamma * k) == 0) {
-            precomputed[i / (gamma * k)] = group_init_set(output);
-        }
-        // g = g*g
-        group_square(output, output);
-    }
-    precomputed[bound] = group_init_set(output);
-    
-    // Find a random prime number in the range of Primes(2k) = Primes(256)
-    // depending on the g and y
-    // l = Hprime(g||y)
-    hash_prime(prime, input, output, 10);
-    
-    generate_proof(proof, identity, input_hashed, precomputed, prime, t, gamma, k);
-    
-    // clear mpz
-    group_clear(input_hashed);
-    group_clear(identity);
-    mpz_clear(prime);
-    
-    for (uint64_t i = 0; i < bound; ++i) {
-        group_clear(precomputed[i]);
-    }
-}
-
-int verify(const GroupElement input,
-           const GroupElement output,
-           const GroupElement proof,
-           uint64_t t)
-{
-    mpz_t* context = group_get_context(input);
+    mpz_t* context = group_get_context(data.input);
     mpz_t r, prime;
+    mpz_init(prime);
+    mpz_init_set_ui(r, 2);
     
-    GroupElement input_hashed = group_init(context);
     GroupElement identity = group_get_identity(context);
+    // input ^ r
     GroupElement input_r = group_init(context);
+    // proof ^ prime
     GroupElement proof_prime = group_init(context);
 
-    mpz_inits(prime, NULL);
-    mpz_init_set_ui(r, 2);
-
-    
-    group_hash(input_hashed, input);
-    
-    hash_prime(prime, input, output, 10);
+    hash_prime(prime, data.input, data.output, 10);
     
     // r = 2^t (mod prime)
-    mpz_powm_ui(r, r, t, prime);
+    mpz_powm_ui(r, r, data.t, prime);
     
     // input_r = g^r
-    group_pow(input_r, input_hashed, r);
+    group_pow(input_r, data.input, r);
     
     // proof_prime = pi^l
-    group_pow(proof_prime, proof, prime);
-
+    group_pow(proof_prime, data.proof, prime);
+    
     group_mul(proof_prime, proof_prime, input_r);
     
     // res = true if g^r * pi^l == y
-    int res = group_cmp(proof_prime, output);
-    
+    int res = group_cmp(proof_prime, data.output);
+
     mpz_clears(r, prime, NULL);
-    group_clear(input_hashed);
     group_clear(identity);
     group_clear(input_r);
     group_clear(proof_prime);
-
+    
     return res;
 }
 
-void generate_proof(GroupElement proof,
-                    const GroupElement identity,
-                    const GroupElement input_hashed,
-                    const GroupElement* precomputed,
-                    const mpz_t prime,
-                    uint64_t t,
-                    uint64_t gamma,
-                    uint8_t k)
+int verify_prime(const ProofData data)
 {
-    mpz_t* context = group_get_context(input_hashed);
-    mpz_t block, exp;
+    mpz_t* context = group_get_context(data.input);
+    
+    mpz_t r, prime;
+    mpz_init(prime);
+    mpz_init_set_ui(r, 2);
+    
+    GroupElement output = group_init(context);
+    GroupElement identity = group_get_identity(context);
+    GroupElement input_exp_r = group_init(context);
+    GroupElement proof_exp_prime = group_init(context);
+    
+    // r = 2^t (mod prime)
+    mpz_powm_ui(r, r, data.t, data.prime);
+    
+    // input_r = g^r
+    group_pow(input_exp_r, data.input, r);
+    
+    // proof_prime = pi^l
+    group_pow(proof_exp_prime, data.proof, data.prime);
+    
+    // y = pi^l * g^r
+    group_mul(output, proof_exp_prime, input_exp_r);
+    
+    // Verify prime
+    hash_prime(prime, data.input, output, 10);
+    
+    // res = true if g^r * pi^l == y
+    int res = mpz_cmp(prime, data.prime);
+    
+    mpz_clears(r, prime, NULL);
+    group_clear(output);
+    group_clear(identity);
+    group_clear(input_exp_r);
+    group_clear(proof_exp_prime);
+    
+    return res;
+}
+
+
+// generate_proof_parallel:
+// Calulates the proof attribute for a give ProofData
+//
+// ptr:
+// A pointer to a ProofData struct for which all attributes but proof have been set
+void* generate_proof_parallel(void* ptr) {
+    ProofData* data;
+    data = (ProofData*)ptr;
+    
+    mpz_t* context = group_get_context(data->input);
+    
+    
+    uint64_t t = data->t;
+    uint64_t gamma = data->gamma;
+    uint8_t k = data->k;
+    
     uint8_t k0, k1;
-    uint64_t b, bound, exp_uint64;
+    uint64_t b, exp_uint64;
+    
+    
+    // Used to calculate blocks on the fly
+    mpz_t block, res, exp_k, exp_kgamma;
+    mpz_t exp;
+    mpz_inits(block, res, exp, exp_k, exp_kgamma, NULL);
+    mpz_pow2(exp_k, k);
+    mpz_pow2(exp_kgamma, gamma * k);
     
     // output = id
-    group_set(proof, identity);
+    GroupElement identity = group_get_identity(context);
+    data->proof = group_init_set(identity);
+    
     GroupElement tmp = group_init(context);
-    
-    mpz_inits(block, exp, NULL);
-    
-    // Number of precomputed squarings of input
-    bound = precomputed_lenth(t, gamma, k);
     
     // k1 = floor(k/2)
     k1 = k / 2;
@@ -178,28 +133,44 @@ void generate_proof(GroupElement proof,
     // k0 = k - k1
     k0 = k - k1;
     
-    // allocate 2^k GrouoElements representing the base
-    GroupElement y[1<<k];
+    // allocate 2^k Gr§uoElements representing the base
+    GroupElement y[1 << k];
     for (b = 0; b < (1 << k); ++b) {
         y[b] = group_init(context);
     }
-
+    
     uint64_t j = gamma;
     while (j > 0) {
         j--;
         // x = x ^ (2^k)
-        group_seq_square(proof, proof, k);
+        group_seq_square(data->proof, data->proof, k);
         
         // y[b] = id
         for (b = 0; b < (1 << k); ++b) {
             group_set(y[b], identity);
         }
-    
-        for (uint64_t i = 0; t >= k * (i * gamma + j + 1) ; ++i) {
-            get_block(block, i * gamma + j, t, k, prime);
+        
+        // Number of k*gamma steps between k*(j+1) and t
+        uint64_t bound = (t - (j+1)*k)/(gamma*k);
+        // Set remainder to 2^(t-k(bound*gamma + j + 1) mod l
+        mpz_pow2(res, t - k *(bound * gamma + j + 1));
+        mpz_mod(res, res, data->prime);
+        
+        // This bound makes sure that t >= k * (i * gamma + j + 1)
+        for (uint64_t i = 0; i < bound + 1 ; ++i) {
+            // b = 2^k * r
+            mpz_mul(block, res, exp_k);
+            // b = floor(b/l) = floor((2^k * r)/l)
+            mpz_fdiv_q(block, block, data->prime);
+            // r = r * 2^(k*gamma)
+            mpz_mul(res, res, exp_kgamma);
+            // r = r mod l
+            mpz_mod(res, res, data->prime);
+            
             b = mpz_get_ui(block);
+            
             // y_b = y_b * Ci
-            group_mul(y[b], y[b], precomputed[i]);
+            group_mul(y[b], y[b], data->precomputed[bound-i]);
         }
         
         // We should be able to do both of these two following loops in parallel
@@ -210,10 +181,10 @@ void generate_proof(GroupElement proof,
             }
             exp_uint64 = b1 * (1 << k0);
             // Set exp to exp_uint64
-            mpz_import(exp, 1, -1, sizeof(uint64_t), 0, 0, &exp_uint64);
+            mpz_import(exp, 1, 1, sizeof(uint64_t), 0, 0, &exp_uint64);
             group_pow(tmp, tmp, exp);
             
-            group_mul(proof, proof, tmp);
+            group_mul(data->proof, data->proof, tmp);
         }
         
         for (uint64_t b0 = 0; b0 < (1<<k0); ++b0) {
@@ -222,51 +193,109 @@ void generate_proof(GroupElement proof,
                 group_mul(tmp, tmp, y[b1 * (1<<k0) + b0]);
             }
             // set exp to b0
-            mpz_import(exp, 1, -1, sizeof(uint64_t), 0, 0, &b0);
+            mpz_import(exp, 1, 1, sizeof(uint64_t), 0, 0, &b0);
             group_pow(tmp, tmp, exp);
             
-            group_mul(proof, proof, tmp);
+            group_mul(data->proof, data->proof, tmp);
         }
     }
     
-    //debug
-    if (0) {
-        mpz_t proof2;
-        mpz_init(proof2);
-        // exp = floor(2^t/l)
-        mpz_pow2(exp, t);
-        mpz_fdiv_q(exp, exp, prime);
-
-        // y = g^floor(2^t/l)
-        // Group op: y = x ^ exp
-//        mpz_powm(proof2, input_hashed->el, exp, *(input_hashed->mod));
-//        assert(mpz_cmp(proof->elr, proof2)==0);
-//        gmp_printf("calc proof: %Zd\nreal proof: %Zd\n", proof->el, proof2);
-    }
-    
-    
-    mpz_clears(block, exp, NULL);
+    mpz_clears(block, res, exp_k, exp_kgamma, exp, NULL);
     group_clear(tmp);
+    group_clear(identity);
     
     for (b = 0; b < (1 << k); ++b) {
         group_clear(y[b]);
     }
     
+    return NULL;
 }
 
-void get_block(mpz_t block,
-               uint64_t i,
-               uint64_t t,
-               uint8_t k,
-               const mpz_t prime)
+void eval(ProofData* outputs,
+          const GroupElement input,
+          uint64_t t,
+          double overhead,
+          uint8_t segments)
 {
-    // b = 2^exp (mod l)
-    mpz_powm_ui(block, two, t - k * (i + 1), prime);
+    mpz_t* context = group_get_context(input);
+    assert(overhead >= 1);
+    assert(segments > 0);
 
-    // b = 2^k * b
-    // conversion from uint8_t to mp_bitcnt_t (unsigned long) is ok
-    mpz_mul_2exp(block, block, (mp_bitcnt_t)k);
+    // Initialize the return structure for each segement
+    uint64_t total = 0;
+    for (uint8_t i = 0; i < segments; ++i) {
+        // Set each ti to t*w^(n-1)*(w-1)/(w^n-1)
+        if (i < (segments - 1)) {
+            outputs[i].t = t * (pow(overhead, segments - (i+1)) * (overhead - 1) / (pow(overhead, segments) - 1));
+            total += outputs[i].t;
+        } else {
+            // compensate for some rounding
+            outputs[i].t = t - total;
+        }
+        outputs[i].gamma = sqrt(outputs[i].t);
+        outputs[i].k = find_optimal_k(outputs[i].t, outputs[i].gamma);
+        outputs[i].bound = precomputed_lenth(outputs[i].t, outputs[i].gamma, outputs[i].k);
+        outputs[i].precomputed = malloc(sizeof(GroupElement) * outputs[i].bound);
+        mpz_init(outputs[i].prime);
+    }
     
-    // b = floor(b/l)
-    mpz_fdiv_q(block, block, prime);
+    // Hash the input
+    GroupElement input_hashed = group_init(context);
+    group_hash(input_hashed, input);
+    
+    GroupElement identity = group_get_identity(context);
+    GroupElement y = group_init_set(input_hashed);
+
+    pthread_t thread_id[segments];
+
+    for (uint8_t i = 0; i < segments; ++i) {
+        outputs[i].input = group_init_set(y);
+        uint64_t t_i = outputs[i].t;
+        uint64_t gamma = outputs[i].gamma;
+        uint8_t k = outputs[i].k;
+        
+        // Compute the sequential squaring of the input, and memoizing
+        // every κ*γ steps
+        for (uint64_t j = 0; j < t_i; ++j) {
+            if (j % (gamma * k) == 0) {
+                outputs[i].precomputed[j / (gamma * k)] = group_init_set(y);
+            }
+            // g = g*g
+            group_square(y, y);
+        }
+        outputs[i].output = group_init_set(y);
+        
+        // Find a random prime number in the range of Primes(2k) = Primes(256)
+        // depending on the g and y
+        // l = Hprime(g||y)
+        hash_prime(outputs[i].prime, outputs[i].input, y, 10);
+        
+        pthread_create(&thread_id[i], NULL, generate_proof_parallel, &(outputs[i]));
+    }
+    
+    for (uint8_t i = 0; i < segments; ++i) {
+        pthread_join(thread_id[i], NULL);
+    }
+
+    
+    group_clear(input_hashed);
+    group_clear(identity);
+    group_clear(y);
+    
+    for (uint8_t i = 0; i < segments; ++i) {
+        for (uint64_t j = 0; j < outputs[i].bound; ++j) {
+            group_clear(outputs[i].precomputed[j]);
+        }
+        free(outputs[i].precomputed);
+        outputs[i].precomputed = NULL;
+    }
+}
+
+void vdf_clear_outputs(ProofData* outputs, uint8_t segments) {
+    for (uint8_t i = 0; i < segments; ++i) {
+        group_clear(outputs[i].input);
+        group_clear(outputs[i].proof);
+        group_clear(outputs[i].output);
+        mpz_clear(outputs[i].prime);
+    }
 }

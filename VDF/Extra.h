@@ -10,13 +10,14 @@
 #define Extra_h
 
 #include <gmp.h>
+#include <stdint.h>
 
 #include "Group.h"
 
 extern mpz_t two;
 
 // Function to calculate 2^t using bit setting, should be faster than usual
-void mpz_pow2(mpz_t rop, unsigned long int exp);
+void mpz_pow2(mpz_t rop, uint64_t exp);
 
 
 // Given an input pointer of length bytes, will output a 32 byte
@@ -40,5 +41,9 @@ int hash_prime(mpz_t output,
 
 
 void generate_prime(mpz_t pk, gmp_randstate_t state, int rep, mp_bitcnt_t modulus);
+
+uint8_t find_optimal_k(uint64_t t, uint64_t gamma);
+
+uint64_t precomputed_lenth(uint64_t t, uint64_t gamma, uint8_t k);
 
 #endif /* Extra_h */

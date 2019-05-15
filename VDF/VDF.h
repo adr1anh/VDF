@@ -14,83 +14,55 @@
 
 #include "Group.h"
 
+typedef struct ProofData {
+    GroupElement input; // g
+    GroupElement* precomputed; // g^(i*2^(κ*γ)) for i = 0, ..., bound
+    GroupElement proof; // g^floor(2^t/l)
+    GroupElement output; // g^(2^t)
+    mpz_t prime;
+    uint64_t t;
+    uint64_t gamma;
+    uint8_t k;
+    uint64_t bound; // Length of precomputed array
+} ProofData;
 
 // eval:
-// Evaluate the VDF
+// Evaluate the VDF, optimized to minimize the overhead
 //
-// ouput:
-// Calculates g^(2^t)
-//
-// proof:
-// Calculates g^floor(2^t/l) in O(t/ln(t))
+// ouputs:
+// A ProofData struct with all fields computed (except precomputed) computed
 //
 // input:
+// Initial group element to be evaluated
 //
 // t:
+// The number of squarings to perform
 //
-void eval(GroupElement output,
-          GroupElement proof,
+// overhead:
+// When we split t into different segments, t_(i-1) = ω * t_i
+//
+// segments:
+// The amount of splitting we do to t
+void eval(ProofData* outputs,
           const GroupElement input,
-          uint64_t t);
+          uint64_t t,
+          double overhead,
+          uint8_t segments);
 
-// verify:
-// Verification of a computed output and proof
+// verify / verify_prime:
+// Verification of a computed output and proof using either the output, or the
+// prime challenge
 //
-// input:
-//
-// output:
-//
-// proof:
-//
-// t:
+// data:
+// The proof data computed by eval
 //
 // return:
 // 0 if the test passe, anything else otherwise
-int verify(const GroupElement input,
-           const GroupElement output,
-           const GroupElement proof,
-           uint64_t t);
+int verify(const ProofData data);
+int verify_prime(const ProofData data);
 
-// generate_proof:
-// Verification of a computed output and proof
-//
-// input:
-//
-// output:
-//
-// proof:
-//
-// t:
-//
-// return:
-// 0 if the test passe, anything else otherwise
-void generate_proof(GroupElement proof,
-                    const GroupElement identity,
-                    const GroupElement input_hashed,
-                    const GroupElement* precomputed,
-                    const mpz_t prime,
-                    uint64_t t,
-                    uint64_t gamma,
-                    uint8_t k);
-
-// get_block:
-// Verification of a computed output and proof
-//
-// block:
-//
-// i:
-//
-// t:
-//
-// k:
-//
-// prime:
-//
-void get_block(mpz_t block,
-               uint64_t i,
-               uint64_t t,
-               uint8_t k,
-               const mpz_t prime);
-
+// vdf_clear_outputs:
+// Clears a ProofData struct
+void vdf_clear_outputs(ProofData* outputs, uint8_t segments);
 
 #endif /* VDF_h */

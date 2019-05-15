@@ -11,65 +11,68 @@
 #include <stdint.h>
 #include <time.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #include "Extra.h"
 #include "Group.h"
 #include "VDF.h"
-#include "Testing.h"
 
 mpz_t two;
 
 int main(int argc, const char * argv[]) {
-    //set initial static vars
     mpz_init_set_ui(two, 2);
     
     clock_t start, end;
     double cpu_time_used;
+    
+    uint64_t t = (1<<15) +1 ;
 
-    unsigned long int t = (1<<28);
-
-//    mpz_t p1,p2;
-//    GroupElement tmp1,tmp2;
-//    mpz_inits(p1, p2,tmp1->el,tmp2->el, NULL);
-//    mpz_init_set_ui(tmp1->el, 5);
-//    mpz_init_set_ui(tmp2->el, 3);
-//    hash_prime(p1, tmp1, tmp2, 50);
-//    hash_prime(p2, tmp2, tmp1, 50);
-//    mpz_mul(pk, p1, p2);
+    
     gmp_randstate_t state;
     gmp_randinit_default(state);
+    gmp_randseed_ui(state, 42); //Use a seed to make output reproducible
     mpz_t pk;
     mpz_init(pk);
-    generate_prime(pk, state, 100, 512);
+    generate_prime(pk, state, 3, 8000);
+    gmp_printf("pk: %Zd\n", pk);
     
-//    gmp_printf("pk %Zd\n ", pk);
+    GroupElement input = group_init_set_ui(&pk, 4);
     
-    GroupElement y = group_init(&pk);
-    GroupElement proof = group_init(&pk);
-    GroupElement x = group_init_set_ui(&pk, 2);
+    uint8_t segments = 3;
+    double overhead = 20.0;
+    ProofData* outputs = malloc(sizeof(ProofData) * segments);
     
     start = clock();
-    eval(y, proof, x, t);
+    eval(outputs, input, t, overhead, segments);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("time used for eval: %lf\n", cpu_time_used);
-
-
+    printf("time used for eval multi %u: \t\t %lf\n", segments, cpu_time_used);
+    
+//    segments = 2;
     start = clock();
-    assert(verify(x, y, proof, t) == 0);
+    eval(outputs, input, t, overhead, segments);
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("time used for vefify: %lf\n", cpu_time_used);
+    printf("time used for eval multi %u: \t\t %lf\n", segments, cpu_time_used);
     
-//    assert(test_generate_proof(x, id, t, k, gamma, pk));
+//    segments = 1;
+    start = clock();
+    eval(outputs, input, t, overhead, segments);
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("time used for eval multi %u: \t\t %lf\n", segments, cpu_time_used);
     
-//    unsigned long int k = log(t)/3;
-//    mpz_set_ui(tmp1, 17);
-//    test_get_block(t, k, tmp1);
+//    start = clock();
+//    assert(verify_short(x, prime1, proof1, t1) == 0);
+    for (uint8_t i = 0; i < segments; ++i) {
+        assert(verify(outputs[i]) == 0);
+        assert(verify_prime(outputs[i]) == 0);
+    }
+
+    vdf_clear_outputs(outputs, segments);
+    free(outputs);
+    outputs = NULL;
     
-    group_clear(y);
-    group_clear(x);
-    group_clear(proof);
     mpz_clears(two, pk, NULL);
     return 0;
 }

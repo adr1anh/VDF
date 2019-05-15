@@ -10,10 +10,16 @@
 #include <gmp.h>
 #include <openssl/sha.h>
 #include <string.h>
+#include <math.h>
+#include <assert.h>
 
-void mpz_pow2(mpz_t rop, unsigned long int exp) {
-    mpz_set_ui(rop, 0);
-    mpz_setbit(rop, exp);
+void mpz_pow2(mpz_t rop, uint64_t exp) {
+    if (exp <= UINT32_MAX) {
+        mpz_set_ui(rop, 0);
+        mpz_setbit(rop, exp);
+    } else {
+        assert(0);
+    }
 }
 
 // Prints a mpz_t
@@ -131,4 +137,58 @@ void generate_prime(mpz_t pk, gmp_randstate_t state, int rep, mp_bitcnt_t modulu
     mpz_mul(pk, pk, p);
 
     mpz_clear(p);
+}
+
+
+uint64_t precomputed_lenth(uint64_t t, uint64_t gamma, uint8_t k) {
+    return t / (gamma * k) + (t % (gamma * k) != 0);
+}
+
+#ifdef DEBUG
+double num_of_group_mul(uint64_t t, uint64_t gamma, uint8_t k) {
+    return (((double) t / (double)k) + (double)gamma * (1 << (k+1)));
+}
+#endif
+
+
+uint8_t find_optimal_k(uint64_t t, uint64_t gamma) {
+    // The choice of gamma should be around t^(1/2) as this is a halfway between
+    // memory and computation optimality
+    
+    // We use Newton's method for finding the minimum of f(k) = t/k + gamma*2^(k+1)
+    // That is, a zero of g(k) = f'(k)
+    // g(k) = -t/k^2 + gamma*ln(2)*2^(k+1)
+    // g'(k) = 2*t/k^3 + gamma*ln(2)^2*2^(k+1)
+    //
+    // x(n+1) = x(n) - g(x(n))/g'(x(n))
+    
+    // For t =2^26 and k is opt 31s
+    // For t =2^26 and k is opt 32.7s
+    
+    double xn, xn1, ln2, tmp;
+    // We use an int for k because it will never be larger than 64 (not bits!)
+    // The zero of g' increases logarithmically in t
+    int k = 0;
+    xn = 1;
+    ln2 = log(2);
+    
+    // Five iterations should suffice
+    for (int i = 0; i<5; ++i){
+        tmp = ln2 * gamma * exp2(xn + 1);
+        xn1 = xn - (- (double)t/(xn*xn) + tmp) / (2*(double)t/(xn*xn*xn) + ln2*tmp);
+        xn = xn1;
+        k = rint(xn1);
+    }
+    
+    // Check that we indeed return a minimum for f
+    #ifdef DEBUG
+        double fkm,fkp,fk;
+        fkm = num_of_group_mul(t,gamma,k-1);
+        fkp = num_of_group_mul(t,gamma,k+1);
+        fk = num_of_group_mul(t,gamma,k);
+        assert(num_of_group_mul(t,gamma,k) < num_of_group_mul(t,gamma,k+1));
+        assert(num_of_group_mul(t,gamma,k) < num_of_group_mul(t,gamma,k-1));
+    #endif
+    
+    return (uint8_t)k;
 }
