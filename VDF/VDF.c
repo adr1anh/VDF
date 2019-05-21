@@ -133,7 +133,7 @@ void* generate_proof_parallel(void* ptr) {
     // k0 = k - k1
     k0 = k - k1;
     
-    // allocate 2^k Gr§uoElements representing the base
+    // allocate 2^k GroupElements representing the base
     GroupElement y[1 << k];
     for (b = 0; b < (1 << k); ++b) {
         y[b] = group_init(context);
@@ -247,13 +247,19 @@ void eval(ProofData* outputs,
     GroupElement y = group_init_set(input_hashed);
 
     pthread_t thread_id[segments];
-
+    clock_t start, end;
+    double cpu_time_used;
+    
+    
     for (uint8_t i = 0; i < segments; ++i) {
         outputs[i].input = group_init_set(y);
         uint64_t t_i = outputs[i].t;
         uint64_t gamma = outputs[i].gamma;
         uint8_t k = outputs[i].k;
         
+        if (segments == 1) {
+            start = clock();
+        }
         // Compute the sequential squaring of the input, and memoizing
         // every κ*γ steps
         for (uint64_t j = 0; j < t_i; ++j) {
@@ -264,20 +270,31 @@ void eval(ProofData* outputs,
             group_square(y, y);
         }
         outputs[i].output = group_init_set(y);
+        if (segments == 1) {
+            end = clock();
+            cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+            printf("time used for squaring: \t\t%lf\n", cpu_time_used);
+        }
         
         // Find a random prime number in the range of Primes(2k) = Primes(256)
         // depending on the g and y
         // l = Hprime(g||y)
         hash_prime(outputs[i].prime, outputs[i].input, y, 10);
-        
-        pthread_create(&thread_id[i], NULL, generate_proof_parallel, &(outputs[i]));
-//        generate_proof_parallel(&(outputs[i]));
+        if (segments == 1) {
+            start = clock();
+            generate_proof_parallel(&(outputs[i]));
+            end = clock();
+            cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+            printf("time used for proof: \t\t%lf\n", cpu_time_used);
+        } else {
+            pthread_create(&thread_id[i], NULL, generate_proof_parallel, &(outputs[i]));
+        }
     }
-    
-    for (uint8_t i = 0; i < segments; ++i) {
-        pthread_join(thread_id[i], NULL);
+    if (segments != 1) {
+        for (uint8_t i = 0; i < segments; ++i) {
+            pthread_join(thread_id[i], NULL);
+        }
     }
-
     
     group_clear(input_hashed);
     group_clear(identity);

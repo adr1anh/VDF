@@ -116,6 +116,7 @@ void group_seq_square(GroupElement rop, const GroupElement g, uint64_t t) {
     mpz_set(rop->el, g->el);
     for (uint64_t i = 0; i < t; ++i) {
         group_square(rop, rop);
+        // TODO
     }
 }
 

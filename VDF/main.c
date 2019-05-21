@@ -32,7 +32,7 @@ int main(int argc, const char * argv[]) {
         seed = 42;
         rsa_key_length = 8192;
         input_int = 3;
-        t_exponent = 17;
+        t_exponent = 21;
         overhead = 20.0;
         segments = 3;
     } else {
@@ -46,8 +46,10 @@ int main(int argc, const char * argv[]) {
     
     mpz_init_set_ui(two, 2);
     
-    clock_t start, end;
-    double cpu_time_used;
+//    clock_t start, end;
+//    double cpu_time_used;
+    struct timespec start, finish;
+    double elapsed;
     
     uint64_t t = 1 << t_exponent;
 
@@ -64,12 +66,20 @@ int main(int argc, const char * argv[]) {
     
     ProofData* outputs = malloc(sizeof(ProofData) * segments);
     
+    
+    
     for (uint8_t i = 1; i <= segments; ++i) {
-        start = clock();
+//        start = clock();
+        clock_gettime(CLOCK_MONOTONIC, &start);
         eval(outputs, input, t, overhead, i);
-        end = clock();
-        cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-        printf("time used for eval multi %u: \t\t %lf\n", i, cpu_time_used);
+        clock_gettime(CLOCK_MONOTONIC, &finish);
+        
+        elapsed = (finish.tv_sec - start.tv_sec);
+        elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+        printf("time used for eval multi %u: \t\t %lf\n", i, elapsed);
+//        end = clock();
+//        cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+//        printf("time used for eval multi %u: \t\t %lf\n", i, cpu_time_used);
         for (uint8_t j = 0; j < i; ++j) {
             assert(verify(outputs[j]) == 0);
             assert(verify_prime(outputs[j]) == 0);
