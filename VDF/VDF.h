@@ -24,6 +24,8 @@ typedef struct ProofData {
     uint64_t gamma;
     uint8_t k;
     uint64_t bound; // Length of precomputed array
+    double time_squaring;
+    double time_proof;
 } ProofData;
 
 // eval:

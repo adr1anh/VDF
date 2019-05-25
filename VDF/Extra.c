@@ -18,15 +18,10 @@ void mpz_pow2(mpz_t rop, uint64_t exp) {
         mpz_set_ui(rop, 0);
         mpz_setbit(rop, exp);
     } else {
+        // TODO: Find an efficient way to do a big power of two
         assert(0);
     }
 }
-
-// Prints a mpz_t
-void printz(mpz_t const out, char name[]) {
-    //    std::cout << s << ": " << mpz_get_str (NULL, 10, out) << std::endl;
-}
-
 
 //https://stackoverflow.com/a/2262447
 
@@ -67,8 +62,7 @@ int hash(mpz_t rop, const mpz_t x)
 
 int hash_prime(mpz_t output,
                const GroupElement x,
-               const GroupElement y,
-               int reps)
+               const GroupElement y)
 {
     // Get the three strings which will be concatenated to produce a 256bit hash
     char* prime_string = "prime";
@@ -103,7 +97,7 @@ int hash_prime(mpz_t output,
         mpz_import(output, SHA256_DIGEST_LENGTH, 1, sizeof(unsigned char), 0, 0, md);
         
         // Chech if the output is a probable prime
-        int ret = mpz_probab_prime_p(output, reps);
+        int ret = mpz_probab_prime_p(output, HASH_PRIME_TEST_REPETITION);
         if (ret) {
             return ret;
         }
@@ -112,17 +106,15 @@ int hash_prime(mpz_t output,
     return 0;
 }
 
-void generate_prime(mpz_t pk, gmp_randstate_t state, int rep, mp_bitcnt_t modulus)
+void generate_prime(mpz_t pk, gmp_randstate_t state, mp_bitcnt_t modulus)
 {
     mpz_t p;
     mpz_init(p);
     mpz_set_ui(pk, 1);
 
-    mp_bitcnt_t n;
+    mp_bitcnt_t n = modulus/2;
 
-    n = modulus/2;
-
-    while (mpz_probab_prime_p(p, rep) == 0) {
+    while (mpz_probab_prime_p(p, RSA_PRIME_TEST_REPETITION) == 0) {
         mpz_urandomb(p, state, n);
     }
     
@@ -130,7 +122,7 @@ void generate_prime(mpz_t pk, gmp_randstate_t state, int rep, mp_bitcnt_t modulu
 
     n = modulus - n;
     
-    while (mpz_probab_prime_p(p, rep) == 0 ) {
+    while (mpz_probab_prime_p(p, RSA_PRIME_TEST_REPETITION) == 0 ) {
         mpz_urandomb(p, state, n);
     }
 
@@ -144,11 +136,6 @@ uint64_t precomputed_lenth(uint64_t t, uint64_t gamma, uint8_t k) {
     return t / (gamma * k) + (t % (gamma * k) != 0);
 }
 
-#ifdef DEBUG
-double num_of_group_mul(uint64_t t, uint64_t gamma, uint8_t k) {
-    return (((double) t / (double)k) + (double)gamma * (1 << (k+1)));
-}
-#endif
 
 
 uint8_t find_optimal_k(uint64_t t, uint64_t gamma) {
@@ -172,23 +159,13 @@ uint8_t find_optimal_k(uint64_t t, uint64_t gamma) {
     xn = 1;
     ln2 = log(2);
     
-    // Five iterations should suffice
+    // Five iterations are enough, we only need an integer anyway
     for (int i = 0; i<5; ++i){
         tmp = ln2 * gamma * exp2(xn + 1);
         xn1 = xn - (- (double)t/(xn*xn) + tmp) / (2*(double)t/(xn*xn*xn) + ln2*tmp);
         xn = xn1;
         k = rint(xn1);
     }
-    
-    // Check that we indeed return a minimum for f
-    #ifdef DEBUG
-        double fkm,fkp,fk;
-        fkm = num_of_group_mul(t,gamma,k-1);
-        fkp = num_of_group_mul(t,gamma,k+1);
-        fk = num_of_group_mul(t,gamma,k);
-        assert(num_of_group_mul(t,gamma,k) < num_of_group_mul(t,gamma,k+1));
-        assert(num_of_group_mul(t,gamma,k) < num_of_group_mul(t,gamma,k-1));
-    #endif
     
     return (uint8_t)k;
 }

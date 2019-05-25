@@ -29,17 +29,28 @@ int verify(const ProofData data)
     // proof ^ prime
     GroupElement proof_prime = group_init(context);
 
-    hash_prime(prime, data.input, data.output, 10);
+    hash_prime(prime, data.input, data.output);
     
     // r = 2^t (mod prime)
-    mpz_powm_ui(r, r, data.t, prime);
+    // Because mpz_powm_ui takes an unsigned long int (same as uint32_t) we
+    // must seperate t into managable bits
+    if (data.t > UINT32_MAX) {
+        uint64_t t_temp = data.t;
+        while (t_temp > UINT32_MAX) {
+            mpz_powm_ui(r, r, UINT32_MAX, prime);
+            t_temp -= UINT32_MAX;
+        }
+        mpz_powm_ui(r, r, t_temp, prime);
+    } else {
+        mpz_powm_ui(r, r, data.t, prime);
+    }
+    
     
     // input_r = g^r
     group_pow(input_r, data.input, r);
     
     // proof_prime = pi^l
     group_pow(proof_prime, data.proof, prime);
-    
     group_mul(proof_prime, proof_prime, input_r);
     
     // res = true if g^r * pi^l == y
@@ -67,7 +78,16 @@ int verify_prime(const ProofData data)
     GroupElement proof_exp_prime = group_init(context);
     
     // r = 2^t (mod prime)
-    mpz_powm_ui(r, r, data.t, data.prime);
+    if (data.t > UINT32_MAX) {
+        uint64_t t_temp = data.t;
+        while (t_temp > UINT32_MAX) {
+            mpz_powm_ui(r, r, UINT32_MAX, data.prime);
+            t_temp -= UINT32_MAX;
+        }
+        mpz_powm_ui(r, r, t_temp, data.prime);
+    } else {
+        mpz_powm_ui(r, r, data.t, data.prime);
+    }
     
     // input_r = g^r
     group_pow(input_exp_r, data.input, r);
@@ -79,7 +99,7 @@ int verify_prime(const ProofData data)
     group_mul(output, proof_exp_prime, input_exp_r);
     
     // Verify prime
-    hash_prime(prime, data.input, output, 10);
+    hash_prime(prime, data.input, output);
     
     // res = true if g^r * pi^l == y
     int res = mpz_cmp(prime, data.prime);
@@ -100,19 +120,25 @@ int verify_prime(const ProofData data)
 // ptr:
 // A pointer to a ProofData struct for which all attributes but proof have been set
 void* generate_proof_parallel(void* ptr) {
+    struct timespec start, finish;
     ProofData* data;
     data = (ProofData*)ptr;
     
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    
     mpz_t* context = group_get_context(data->input);
     
+    hash_prime(data->prime, data->input, data->output);
     
     uint64_t t = data->t;
     uint64_t gamma = data->gamma;
     uint8_t k = data->k;
     
     uint8_t k0, k1;
-    uint64_t b, exp_uint64;
+    k1 = k / 2;
+    k0 = k - k1;
     
+    uint64_t b, exp_uint64;
     
     // Used to calculate blocks on the fly
     mpz_t block, res, exp_k, exp_kgamma;
@@ -127,11 +153,6 @@ void* generate_proof_parallel(void* ptr) {
     
     GroupElement tmp = group_init(context);
     
-    // k1 = floor(k/2)
-    k1 = k / 2;
-    
-    // k0 = k - k1
-    k0 = k - k1;
     
     // allocate 2^k GroupElements representing the base
     GroupElement y[1 << k];
@@ -208,6 +229,10 @@ void* generate_proof_parallel(void* ptr) {
         group_clear(y[b]);
     }
     
+    clock_gettime(CLOCK_MONOTONIC, &finish);
+    data->time_proof = (finish.tv_sec - start.tv_sec);
+    data->time_proof += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+    
     return NULL;
 }
 
@@ -247,19 +272,17 @@ void eval(ProofData* outputs,
     GroupElement y = group_init_set(input_hashed);
 
     pthread_t thread_id[segments];
-    clock_t start, end;
-    double cpu_time_used;
-    
     
     for (uint8_t i = 0; i < segments; ++i) {
+        struct timespec start, finish;
+        
         outputs[i].input = group_init_set(y);
         uint64_t t_i = outputs[i].t;
         uint64_t gamma = outputs[i].gamma;
         uint8_t k = outputs[i].k;
-        
-        if (segments == 1) {
-            start = clock();
-        }
+
+        // Time the squaring
+        clock_gettime(CLOCK_MONOTONIC, &start);
         // Compute the sequential squaring of the input, and memoizing
         // every κ*γ steps
         for (uint64_t j = 0; j < t_i; ++j) {
@@ -270,30 +293,18 @@ void eval(ProofData* outputs,
             group_square(y, y);
         }
         outputs[i].output = group_init_set(y);
-        if (segments == 1) {
-            end = clock();
-            cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-            printf("time used for squaring: \t\t%lf\n", cpu_time_used);
-        }
         
-        // Find a random prime number in the range of Primes(2k) = Primes(256)
-        // depending on the g and y
-        // l = Hprime(g||y)
-        hash_prime(outputs[i].prime, outputs[i].input, y, 10);
-        if (segments == 1) {
-            start = clock();
-            generate_proof_parallel(&(outputs[i]));
-            end = clock();
-            cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-            printf("time used for proof: \t\t%lf\n", cpu_time_used);
-        } else {
-            pthread_create(&thread_id[i], NULL, generate_proof_parallel, &(outputs[i]));
-        }
+        clock_gettime(CLOCK_MONOTONIC, &finish);
+        outputs[i].time_squaring = (finish.tv_sec - start.tv_sec);
+        outputs[i].time_squaring += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+
+        // Compute the proof of y_i while calculating y_(i+1)
+        pthread_create(&thread_id[i], NULL, generate_proof_parallel, &(outputs[i]));
     }
-    if (segments != 1) {
-        for (uint8_t i = 0; i < segments; ++i) {
-            pthread_join(thread_id[i], NULL);
-        }
+    
+    
+    for (uint8_t i = 0; i < segments; ++i) {
+        pthread_join(thread_id[i], NULL);
     }
     
     group_clear(input_hashed);

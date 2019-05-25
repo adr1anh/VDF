@@ -14,7 +14,8 @@
 
 #include "Group.h"
 
-
+#define HASH_PRIME_TEST_REPETITION 10
+#define RSA_PRIME_TEST_REPETITION 2
 
 extern mpz_t two;
 
@@ -38,11 +39,10 @@ int hash(mpz_t rop, const mpz_t x);
 //               int reps);
 int hash_prime(mpz_t output,
                const GroupElement x,
-               const GroupElement y,
-               int reps);
+               const GroupElement y);
 
 
-void generate_prime(mpz_t pk, gmp_randstate_t state, int rep, mp_bitcnt_t modulus);
+void generate_prime(mpz_t pk, gmp_randstate_t state, mp_bitcnt_t modulus);
 
 uint8_t find_optimal_k(uint64_t t, uint64_t gamma);
 

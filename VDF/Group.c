@@ -28,29 +28,17 @@ GroupElement group_init(mpz_t* context) {
 void group_set(GroupElement rop, const GroupElement g) {
     mpz_set(rop->el, g->el);
     rop->mod = g->mod;
-    if (mpz_even_p(rop->el)) {
-        mpz_neg(rop->el, rop->el);
-        mpz_mod(rop->el, rop->el, *(rop->mod));
-    }
 }
 
 void group_set_ui(GroupElement rop, unsigned long int ui) {
     mpz_set_ui(rop->el, ui);
     mpz_mod(rop->el, rop->el, *(rop->mod));
-    if (mpz_even_p(rop->el)) {
-        mpz_neg(rop->el, rop->el);
-        mpz_mod(rop->el, rop->el, *(rop->mod));
-    }
 }
 
 GroupElement group_init_set(const GroupElement g) {
     GroupElement rop = malloc(sizeof(struct GroupElementStruct));
     mpz_init_set(rop->el, g->el);
     rop->mod = g->mod;
-    if (mpz_even_p(rop->el)) {
-        mpz_neg(rop->el, rop->el);
-        mpz_mod(rop->el, rop->el, *(rop->mod));
-    }
     return rop;
 }
 
@@ -58,10 +46,6 @@ GroupElement group_init_set_ui(mpz_t* context, unsigned long int ui) {
     GroupElement rop = malloc(sizeof(struct GroupElementStruct));
     mpz_init_set_ui(rop->el, ui);
     rop->mod = context;
-    if (mpz_even_p(rop->el)) {
-        mpz_neg(rop->el, rop->el);
-        mpz_mod(rop->el, rop->el, *(rop->mod));
-    }
     return rop;
 }
 
@@ -97,34 +81,22 @@ void group_mul(GroupElement rop, const GroupElement op1, const GroupElement op2)
     rop->mod = op1->mod;
     mpz_mul(rop->el, op1->el, op2->el);
     mpz_mod(rop->el, rop->el, *(rop->mod));
-    if (mpz_even_p(rop->el)) {
-        mpz_neg(rop->el, rop->el);
-        mpz_mod(rop->el, rop->el, *(rop->mod));
-    }
 }
 
 void group_square(GroupElement rop, const GroupElement g) {
     mpz_mul(rop->el, g->el, g->el);
     mpz_mod(rop->el, rop->el, *(rop->mod));
-    if (mpz_even_p(rop->el)) {
-        mpz_neg(rop->el, rop->el);
-        mpz_mod(rop->el, rop->el, *(rop->mod));
-    }
 }
 
 void group_seq_square(GroupElement rop, const GroupElement g, uint64_t t) {
     mpz_set(rop->el, g->el);
     for (uint64_t i = 0; i < t; ++i) {
-        group_square(rop, rop);
-        // TODO
+        mpz_mul(rop->el, g->el, g->el);
+        mpz_mod(rop->el, rop->el, *(rop->mod));
     }
 }
 
 void group_pow(GroupElement rop, const GroupElement g, const mpz_t exp) {
     mpz_set(rop->el, g->el);
     mpz_powm(rop->el, g->el, exp, *(g->mod));
-    if (mpz_even_p(rop->el)) {
-        mpz_neg(rop->el, rop->el);
-        mpz_mod(rop->el, rop->el, *(rop->mod));
-    }
 }

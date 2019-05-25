@@ -170,5 +170,4 @@ void group_square(GroupElement rop, const GroupElement g);
 void group_pow(GroupElement rop, const GroupElement g, const mpz_t exp);
 
 
-
 #endif /* Group_h */
