@@ -60,11 +60,11 @@ int main(int argc, const char * argv[]) {
     // Graph time for squaring, proof generation, total, verification for differents RSA modulus
     FILE *fp;
     fp = fopen("/Users/Adrian/Desktop/graph_modulus.txt", "w");
-    fprintf(fp,"modulus,input,output,proof,prime,t,gamma,k,bound,t_squaring,t_proof,t_total,t_verify,t_verify_prime\n");
-    for (int i = 8; i < 18; ++i) {
+    fprintf(fp,"modulus,n,input,output,proof,prime,t,gamma,k,bound,t_squaring,t_proof,t_total,t_verify,t_verify_prime\n");
+    for (int i = 8; i < 16; ++i) {
         rsa_key_length = 1 << i;
         generate_prime(pk, state, rsa_key_length);
-        for (int t_exp = 10; t_exp < 32; ++t_exp) {
+        for (int t_exp = 10; t_exp < 26; ++t_exp) {
             struct timespec start, finish;
             double t_total, t_verify,t_verify_prime;
             
@@ -96,23 +96,17 @@ int main(int argc, const char * argv[]) {
             t_verify_prime = (finish.tv_sec - start.tv_sec);
             t_verify_prime += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
             
-            printf("%u,%s,%s,%s,%s,%llu,%llu,%u,%llu,%.7f,%.7f,%.7f,%.7f,%.7f\n",
+            printf("%u,%llu,%.7f,%.7f,%.7f,%.7f,%.7f\n",
                    rsa_key_length,
-                   group_get_string(output[0].input),
-                   group_get_string(output[0].output),
-                   group_get_string(output[0].proof),
-                   mpz_get_str(NULL, 10, output[0].prime),
                    output[0].t,
-                   output[0].gamma,
-                   output[0].k,
-                   output[0].bound,
                    output[0].time_squaring,
                    output[0].time_proof,
                    t_total,
                    t_verify,
                    t_verify_prime);
-            fprintf(fp,"%u,%s,%s,%s,%s,%llu,%llu,%u,%llu,%.7f,%.7f,%.7f,%.7f,%.7f\n",
+            fprintf(fp,"%u,%s,%s,%s,%s,%s,%llu,%llu,%u,%llu,%.7f,%.7f,%.7f,%.7f,%.7f\n",
                     rsa_key_length,
+                    mpz_get_str(NULL, 10, pk),
                     group_get_string(output[0].input),
                     group_get_string(output[0].output),
                     group_get_string(output[0].proof),
@@ -126,9 +120,12 @@ int main(int argc, const char * argv[]) {
                     t_total,
                     t_verify,
                     t_verify_prime); // printing to file
-            
             vdf_clear_outputs(output, 1);
             free(output);
+            
+            if (t_total > 600.0) {
+                break;
+            }
         }
     }
     fclose(fp);
