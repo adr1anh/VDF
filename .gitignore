@@ -9,3 +9,5 @@ VDF/Presentation.fdb_latexmk
 VDF/Presentation.aux
 *.o
 VDF/VDF
+.direnv
+.envrc
