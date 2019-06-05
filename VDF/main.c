@@ -61,12 +61,12 @@ int main(int argc, const char * argv[]) {
         gmp_randstate_t state;
         gmp_randinit_default(state);
         gmp_randseed_ui(state, seed); //Use a seed to make output reproducible
-        
+
         mpz_t pk;
         mpz_init(pk);
-        
+
         generate_prime(pk, state, rsa_key_length);
-        for (int t_exp = 10; t_exp < 26; ++t_exp) {
+        for (int t_exp = 10; t_exp < 32; ++t_exp) {
             struct timespec start, finish;
             double t_total, t_verify,t_verify_prime;
 
@@ -132,8 +132,95 @@ int main(int argc, const char * argv[]) {
         mpz_clear(pk);
     }
     fclose(fp);
-    
+
     fp = fopen("/Users/Adrian/Desktop/graph_overhead.csv", "w");
+    fprintf(fp,"modulus,n,input,output,proof,prime,t,gamma,k,bound,segments,overhead,t_squaring,t_proof,t_total,t_verify,t_verify_prime\n");
+    for (int i = 8; i < 13; ++i) {
+        rsa_key_length = 1 << i;
+        gmp_randstate_t state;
+        gmp_randinit_default(state);
+        gmp_randseed_ui(state, seed); //Use a seed to make output reproducible
+
+        mpz_t pk;
+        mpz_init(pk);
+        generate_prime(pk, state, rsa_key_length);
+        for (int segment = 0; segment < 4; ++segment) {
+            struct timespec start, finish;
+            double t_total, t_verify,t_verify_prime;
+
+            t = 1 << 22;
+            ProofData* output = malloc(sizeof(ProofData)*(1+segment));
+
+            GroupElement input = group_init_set_ui(&pk, 14091996);
+
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            eval(output, input, t, 20.0, segment+1);
+            clock_gettime(CLOCK_MONOTONIC, &finish);
+            t_total = (finish.tv_sec - start.tv_sec);
+            t_total += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+
+
+
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            for (int j =0; j<segment+1;j++){
+                assert(verify(output[j]) == 0);
+            }
+            clock_gettime(CLOCK_MONOTONIC, &finish);
+            t_verify = (finish.tv_sec - start.tv_sec);
+            t_verify += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+
+
+
+
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            for (int j =0; j<segment+1;j++){
+                assert(verify_prime(output[j])==0);
+            }
+            clock_gettime(CLOCK_MONOTONIC, &finish);
+            t_verify_prime = (finish.tv_sec - start.tv_sec);
+            t_verify_prime += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+
+            
+
+            printf("%u,%llu,%.7f,%.7f,%.7f,%.7f,%.7f\n",
+                   rsa_key_length,
+                   output[segment].t,
+                   output[segment].time_squaring,
+                   output[segment].time_proof,
+                   t_total,
+                   t_verify,
+                   t_verify_prime);
+            fprintf(fp,"%u,%s,%s,%s,%s,%s,%llu,%llu,%u,%llu,%u,%.7f,%.7f,%.7f,%.7f,%.7f,%.7f\n",
+                    rsa_key_length,
+                    mpz_get_str(NULL, 10, pk),
+                    group_get_string(output[segment].input),
+                    group_get_string(output[segment].output),
+                    group_get_string(output[segment].proof),
+                    mpz_get_str(NULL, 10, output[segment].prime),
+                    output[segment].t,
+                    output[segment].gamma,
+                    output[segment].k,
+                    output[segment].bound,
+                    segment,
+                    overhead,
+                    output[segment].time_squaring,
+                    output[segment].time_proof,
+                    t_total,
+                    t_verify,
+                    t_verify_prime); // printing to file
+            vdf_clear_outputs(output, 1);
+            free(output);
+
+//            if (t_total > 600.0) {
+//                break;
+//            }
+        }
+        mpz_clear(pk);
+    }
+    fclose(fp);
+    
+    
+    fp = fopen("/Users/Adrian/Desktop/graph_overhead_opt.csv", "w");
     fprintf(fp,"modulus,n,input,output,proof,prime,t,gamma,k,bound,segments,overhead,t_squaring,t_proof,t_total,t_verify,t_verify_prime\n");
     for (int i = 8; i < 16; ++i) {
         rsa_key_length = 1 << i;
@@ -144,22 +231,26 @@ int main(int argc, const char * argv[]) {
         mpz_t pk;
         mpz_init(pk);
         generate_prime(pk, state, rsa_key_length);
-//        for (int t_exp = 10; t_exp < 26; ++t_exp) {
-        for (int segment = 0; segment < 4; ++segment) {
+        double overhead = 42.0;
+        for (int segment = 0; segment < 6; ++segment) {
             struct timespec start, finish;
             double t_total, t_verify,t_verify_prime;
             
-            t = 1 << 22;
+            t = 1 << 25;
             ProofData* output = malloc(sizeof(ProofData)*(1+segment));
             
             GroupElement input = group_init_set_ui(&pk, 14091996);
             
             clock_gettime(CLOCK_MONOTONIC, &start);
-            eval(output, input, t, 20.0, segment+1);
+            eval(output, input, t, overhead, segment+1);
             clock_gettime(CLOCK_MONOTONIC, &finish);
             t_total = (finish.tv_sec - start.tv_sec);
             t_total += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
             
+            
+            if (segment == 0) {
+                overhead = t_total / output[0].time_squaring;
+            }
             
             
             clock_gettime(CLOCK_MONOTONIC, &start);
@@ -250,6 +341,6 @@ int main(int argc, const char * argv[]) {
 //    free(outputs);
 //    outputs = NULL;
     
-    mpz_clears(two, pk, NULL);
+    mpz_clears(two, NULL);
     return 0;
 }
