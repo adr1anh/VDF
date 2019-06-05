@@ -11,3 +11,9 @@ VDF/Presentation.aux
 VDF/VDF
 .direnv
 .envrc
+VDF/VDF_opt
+VDF/VDF_over
+VDF/VDF_rsa
+.DS_Store
+VDF.xcodeproj/project.pbxproj
+VDF.xcodeproj/project.pbxproj
