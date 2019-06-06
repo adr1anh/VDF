@@ -12,6 +12,7 @@
 #include <time.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "Extra.h"
 #include "Group.h"
@@ -135,7 +136,7 @@ int main(int argc, const char * argv[]) {
 
     fp = fopen("/Users/Adrian/Desktop/graph_overhead.csv", "w");
     fprintf(fp,"modulus,n,input,output,proof,prime,t,gamma,k,bound,segments,overhead,t_squaring,t_proof,t_total,t_verify,t_verify_prime\n");
-    for (int i = 13; i < 16; ++i) {
+    for (int i = 8; i < 16; ++i) {
         rsa_key_length = 1 << i;
         gmp_randstate_t state;
         gmp_randinit_default(state);
@@ -149,12 +150,13 @@ int main(int argc, const char * argv[]) {
             double t_total, t_verify,t_verify_prime;
 
             t = 1 << 25;
+            double omega = log((double)t);
             ProofData* output = malloc(sizeof(ProofData)*(1+segment));
 
             GroupElement input = group_init_set_ui(&pk, 14091996);
 
             clock_gettime(CLOCK_MONOTONIC, &start);
-            eval(output, input, t, 20.0, segment+1);
+            eval(output, input, t, omega, segment+1);
             clock_gettime(CLOCK_MONOTONIC, &finish);
             t_total = (finish.tv_sec - start.tv_sec);
             t_total += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
