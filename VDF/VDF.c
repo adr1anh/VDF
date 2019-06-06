@@ -243,7 +243,7 @@ void eval(ProofData* outputs,
           uint8_t segments)
 {
     mpz_t* context = group_get_context(input);
-    assert(overhead >= 1);
+//    assert(overhead >= 1);
     assert(segments > 0);
 
     // Initialize the return structure for each segement
