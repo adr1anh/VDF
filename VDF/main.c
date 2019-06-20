@@ -238,7 +238,7 @@ int main(int argc, const char * argv[]) {
             struct timespec start, finish;
             double t_total, t_verify,t_verify_prime;
 
-            uint64_t t = 1 << 20;
+            uint64_t t = 1 << 25;
             ProofData* output = malloc(sizeof(ProofData)*(1+segment));
 
             GroupElement input = group_init_set_ui(&pk, 14091996);
