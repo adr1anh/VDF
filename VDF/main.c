@@ -28,6 +28,8 @@ int main(int argc, const char * argv[]) {
     double overhead;
     uint8_t segments;
     
+    mpz_init_set_ui(two, 2);
+    
     if (argc != 7) {
         printf("Must provide arguments seed, rsa_key_length, input_int, t_exponent, overhead, segments\n");
         printf("if overhead ==0 we use time squaring / time proof\n");
@@ -37,7 +39,7 @@ int main(int argc, const char * argv[]) {
         t_exponent = 4;
         overhead = 3.2;
         segments = 1;
-        return 1;
+//        return 1;
     } else {
         seed = atoi(argv[1]);
         rsa_key_length = atoi(argv[2]);
@@ -47,10 +49,10 @@ int main(int argc, const char * argv[]) {
         segments = atoi(argv[6]);
     }
     
-    mpz_init_set_ui(two, 2);
+
     
 
-    // Graph time for squaring, proof generation, total, verification for differents RSA modulus
+// Graph time for squaring, proof generation, total, verification for differents RSA modulus
 //    FILE *fp;
 //    fp = fopen("/Users/Adrian/Desktop/graph_modulus.txt", "w");
 //    fprintf(fp,"modulus,n,input,output,proof,prime,t,gamma,k,bound,t_squaring,t_proof,t_total,t_verify,t_verify_prime\n");
@@ -217,97 +219,100 @@ int main(int argc, const char * argv[]) {
 //        mpz_clear(pk);
 //    }
 //    fclose(fp);
-//
-//
-//    fp = fopen("/Users/Adrian/Desktop/graph_overhead_opt.csv", "w");
-//    fprintf(fp,"modulus,n,input,output,proof,prime,t,gamma,k,bound,segments,overhead,t_squaring,t_proof,t_total,t_verify,t_verify_prime\n");
-//    for (int i = 8; i < 16; ++i) {
-//        rsa_key_length = 1 << i;
-//        gmp_randstate_t state;
-//        gmp_randinit_default(state);
-//        gmp_randseed_ui(state, seed); //Use a seed to make output reproducible
-//
-//        mpz_t pk;
-//        mpz_init(pk);
-//        generate_prime(pk, state, rsa_key_length);
-//        double overhead = 42.0;
-//        for (int segment = 0; segment < 6; ++segment) {
-//            struct timespec start, finish;
-//            double t_total, t_verify,t_verify_prime;
-//
-//            t = 1 << 25;
-//            ProofData* output = malloc(sizeof(ProofData)*(1+segment));
-//
-//            GroupElement input = group_init_set_ui(&pk, 14091996);
-//
-//            clock_gettime(CLOCK_MONOTONIC, &start);
-//            eval(output, input, t, overhead, segment+1);
-//            clock_gettime(CLOCK_MONOTONIC, &finish);
-//            t_total = (finish.tv_sec - start.tv_sec);
-//            t_total += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-//
-//
-//            if (segment == 0) {
-//                overhead = t_total / output[0].time_squaring;
+
+    FILE *fp;
+    fp = fopen("/Users/Adrian/Desktop/graph_overhead_opt.csv", "w");
+    fprintf(fp,"modulus,n,input,output,proof,prime,t,gamma,k,bound,segments,current_segment,overhead,t_squaring,t_proof,t_total,t_verify,t_verify_prime\n");
+    for (uint8_t i = 12; i < 15; ++i) {
+        printf("RSA: %llu\n",1<<i);
+        rsa_key_length = 1 << i;
+        gmp_randstate_t state;
+        gmp_randinit_default(state);
+        gmp_randseed_ui(state, seed); //Use a seed to make output reproducible
+
+        mpz_t pk;
+        mpz_init(pk);
+        generate_prime(pk, state, rsa_key_length);
+        double overhead = 42.0;
+        for (int segment = 0; segment < 6; ++segment) {
+            struct timespec start, finish;
+            double t_total, t_verify,t_verify_prime;
+
+            uint64_t t = 1 << 20;
+            ProofData* output = malloc(sizeof(ProofData)*(1+segment));
+
+            GroupElement input = group_init_set_ui(&pk, 14091996);
+
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            eval(output, input, t, overhead, segment+1);
+            clock_gettime(CLOCK_MONOTONIC, &finish);
+            t_total = (finish.tv_sec - start.tv_sec);
+            t_total += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+
+
+            if (segment == 0) {
+                overhead = output[0].time_squaring / output[0].time_proof;
+            }
+
+
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            for (int j =0; j<segment+1;j++){
+                assert(verify(output[j]) == 0);
+            }
+            clock_gettime(CLOCK_MONOTONIC, &finish);
+            t_verify = (finish.tv_sec - start.tv_sec);
+            t_verify += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+
+
+
+
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            for (int j =0; j<segment+1;j++){
+                assert(verify_prime(output[j])==0);
+            }
+            clock_gettime(CLOCK_MONOTONIC, &finish);
+            t_verify_prime = (finish.tv_sec - start.tv_sec);
+            t_verify_prime += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+
+
+            printf("\n\n Segments:%d\n",segment);
+            for (int j =0; j<segment+1;j++){
+                printf("RSA: %u \t t: %lu \t sq: %.7f \t pr: %.7f \t tot: %.7f\n",
+                       rsa_key_length,
+                       (unsigned long)log2(output[j].t),
+                       output[j].time_squaring,
+                       output[j].time_proof,
+                       t_total);
+                fprintf(fp,"%u,%s,%s,%s,%s,%s,%llu,%llu,%u,%llu,%u,%u,%.7f,%.7f,%.7f,%.7f,%.7f,%.7f\n",
+                        rsa_key_length,
+                        mpz_get_str(NULL, 10, pk),
+                        group_get_string(output[j].input),
+                        group_get_string(output[j].output),
+                        group_get_string(output[j].proof),
+                        mpz_get_str(NULL, 10, output[j].prime),
+                        output[j].t,
+                        output[j].gamma,
+                        output[j].k,
+                        output[j].bound,
+                        segment,
+                        j,
+                        overhead,
+                        output[j].time_squaring,
+                        output[j].time_proof,
+                        t_total,
+                        t_verify,
+                        t_verify_prime); // printing to file
+            }
+            vdf_clear_outputs(output, 1);
+            free(output);
+
+//            if (t_total > 600.0) {
+//                break;
 //            }
-//
-//
-//            clock_gettime(CLOCK_MONOTONIC, &start);
-//            for (int j =0; j<segment+1;j++){
-//                assert(verify(output[j]) == 0);
-//            }
-//            clock_gettime(CLOCK_MONOTONIC, &finish);
-//            t_verify = (finish.tv_sec - start.tv_sec);
-//            t_verify += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-//
-//
-//
-//
-//            clock_gettime(CLOCK_MONOTONIC, &start);
-//            for (int j =0; j<segment+1;j++){
-//                assert(verify_prime(output[j])==0);
-//            }
-//            clock_gettime(CLOCK_MONOTONIC, &finish);
-//            t_verify_prime = (finish.tv_sec - start.tv_sec);
-//            t_verify_prime += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-//
-//
-//            printf("%u,%llu,%.7f,%.7f,%.7f,%.7f,%.7f\n",
-//                   rsa_key_length,
-//                   output[segment].t,
-//                   output[segment].time_squaring,
-//                   output[segment].time_proof,
-//                   t_total,
-//                   t_verify,
-//                   t_verify_prime);
-//            fprintf(fp,"%u,%s,%s,%s,%s,%s,%llu,%llu,%u,%llu,%u,%.7f,%.7f,%.7f,%.7f,%.7f,%.7f\n",
-//                    rsa_key_length,
-//                    mpz_get_str(NULL, 10, pk),
-//                    group_get_string(output[segment].input),
-//                    group_get_string(output[segment].output),
-//                    group_get_string(output[segment].proof),
-//                    mpz_get_str(NULL, 10, output[segment].prime),
-//                    output[segment].t,
-//                    output[segment].gamma,
-//                    output[segment].k,
-//                    output[segment].bound,
-//                    segment,
-//                    overhead,
-//                    output[segment].time_squaring,
-//                    output[segment].time_proof,
-//                    t_total,
-//                    t_verify,
-//                    t_verify_prime); // printing to file
-//            vdf_clear_outputs(output, 1);
-//            free(output);
-//
-////            if (t_total > 600.0) {
-////                break;
-////            }
-//        }
-//        mpz_clear(pk);
-//    }
-//    fclose(fp);
+        }
+        mpz_clear(pk);
+    }
+    fclose(fp);
 
     // Setup timers
     struct timespec start, finish;
